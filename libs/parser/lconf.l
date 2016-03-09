@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <libgen.h>
 
 #include "lkc.h"
 
@@ -259,6 +260,7 @@ static void zconf_endhelp(void)
 /*
  * Try to open specified file with following names:
  * ./name
+ * dirname(current_file)/name
  * $(srctree)/name
  * The latter is used when srctree is separate from objtree
  * when compiling the kernel.
@@ -266,16 +268,26 @@ static void zconf_endhelp(void)
  */
 FILE *zconf_fopen(const char *name)
 {
-	char *env, fullname[PATH_MAX+1];
+	char *env, fullname[PATH_MAX+1], parenttemp[PATH_MAX+1], *parentpath;
 	FILE *f;
 
 	f = fopen(name, "r");
 	if (!f && name != NULL && name[0] != '/') {
-		env = getenv(SRCTREE);
-		if (env) {
-			sprintf(fullname, "%s/%s", env, name);
-			f = fopen(fullname, "r");
-		}
+    if (current_file) {
+      strncpy(parenttemp, current_file->name, PATH_MAX);
+      parentpath = dirname(parenttemp);
+      if (strcmp(parentpath, ".") != 0) {
+        sprintf(fullname, "%s/%s", parentpath, name);
+        f = fopen(fullname, "r");
+      }
+    }
+    if (!f) {
+      env = getenv(SRCTREE);
+      if (env) {
+        sprintf(fullname, "%s/%s", env, name);
+        f = fopen(fullname, "r");
+      }
+    }
 	}
 	return f;
 }
