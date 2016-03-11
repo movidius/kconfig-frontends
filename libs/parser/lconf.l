@@ -14,6 +14,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <libgen.h>
+#include <errno.h>
 
 #include "lkc.h"
 
@@ -268,17 +269,58 @@ static void zconf_endhelp(void)
  */
 FILE *zconf_fopen(const char *name)
 {
-	char *env, fullname[PATH_MAX+1], parenttemp[PATH_MAX+1], *parentpath;
+	char *env, fullname[PATH_MAX+1], parentpath[PATH_MAX+1], temppath[PATH_MAX+1], *pp;
 	FILE *f;
+  size_t bytesleft;
+  struct file *parent;
+  struct parent_file {
+    struct file *file;
+    struct parent_file *child;
+    struct parent_file *parent;
+  };
+  struct parent_file *parents, *op;
 
 	f = fopen(name, "r");
 	if (!f && name != NULL && name[0] != '/') {
     if (current_file) {
-      strncpy(parenttemp, current_file->name, PATH_MAX);
-      parentpath = dirname(parenttemp);
-      if (strcmp(parentpath, ".") != 0) {
-        sprintf(fullname, "%s/%s", parentpath, name);
-        f = fopen(fullname, "r");
+      parents = NULL;
+      parent = current_file;
+      if (parent->name[0] == '/') {
+        strncpy(temppath, parent->name, PATH_MAX);
+        strncpy(parentpath, dirname(temppath), PATH_MAX);
+      } else {
+        parents = op = NULL;
+        do {
+          op = parents;
+          parents = malloc(sizeof(struct parent_file));
+          parents->file = parent;
+          parents->child = op;
+          if (parents->child)
+            parents->child->parent = parents;
+          parent = parent->parent;
+        } while (parent && (parents->file->name[0] != '/'));
+
+        bytesleft = PATH_MAX;
+        parentpath[0] = 0;
+        op = parents;
+        do {
+          strncpy(temppath, op->file->name, PATH_MAX);
+          pp = dirname(temppath);
+          strncat(parentpath, pp, bytesleft);
+          bytesleft = PATH_MAX - strlen(parentpath);
+          strncat(parentpath, "/", bytesleft);
+          bytesleft--;
+          op = op->child;
+        } while (bytesleft && op);
+      }
+      sprintf(fullname, "%s/%s", parentpath, name);
+      f = fopen(fullname, "r");
+
+      /* cleanup */
+      while (parents) {
+        op = parents->child;
+        free(parents);
+        parents = op;
       }
     }
     if (!f) {
