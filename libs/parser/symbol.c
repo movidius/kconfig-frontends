@@ -1337,6 +1337,14 @@ const char *prop_get_type_name(enum prop_type type)
 		return "range";
 	case P_SYMBOL:
 		return "symbol";
+  case P_SHAVEGROUP:
+    return "shavegroup";
+  case P_SHAVEAPP:
+    return "shaveapp";
+  case P_ENTRYPOINTS:
+    return "entrypoints";
+  case P_LIBRARIES:
+    return "libraries";
 	case P_UNKNOWN:
 		break;
 	}

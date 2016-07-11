@@ -134,6 +134,10 @@ enum prop_type {
 	P_RANGE,    /* range 7..100 (for a symbol) */
 	P_ENV,      /* value from environment variable */
 	P_SYMBOL,   /* where a symbol is defined */
+  P_SHAVEGROUP, /* shavegroup config property  */
+  P_SHAVEAPP, /* shaveapp */
+  P_ENTRYPOINTS, /* entrypoints for shaveapp */
+  P_LIBRARIES /* libraries for shaveapp */
 };
 
 struct property {

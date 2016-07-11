@@ -31,7 +31,7 @@ struct symbol *symbol_hash[SYMBOL_HASHSIZE];
 static struct menu *current_menu, *current_entry;
 
 %}
-%expect 30
+%expect 34
 
 %union
 {
@@ -62,6 +62,10 @@ static struct menu *current_menu, *current_entry;
 %token <id>T_TYPE
 %token <id>T_DEFAULT
 %token <id>T_SELECT
+%token <id>T_SHAVECORECOUNT
+%token <id>T_SHAVEGROUP
+%token <id>T_SHAVEAPP
+%token <id>T_ENTRYPOINTS
 %token <id>T_RANGE
 %token <id>T_VISIBLE
 %token <id>T_OPTION
@@ -119,7 +123,7 @@ stmt_list:
 ;
 
 option_name:
-	T_DEPENDS | T_PROMPT | T_TYPE | T_SELECT | T_OPTIONAL | T_RANGE | T_DEFAULT | T_VISIBLE
+	T_DEPENDS | T_PROMPT | T_TYPE | T_SELECT | T_OPTIONAL | T_RANGE | T_DEFAULT | T_VISIBLE | T_SHAVECORECOUNT
 ;
 
 common_stmt:
@@ -129,6 +133,7 @@ common_stmt:
 	| config_stmt
 	| menuconfig_stmt
 	| source_stmt
+  | shaveapp_stmt
 ;
 
 option_error:
@@ -216,6 +221,9 @@ config_option: T_RANGE symbol symbol if_expr T_EOL
 	menu_add_expr(P_RANGE, expr_alloc_comp(E_RANGE,$2, $3), $4);
 	printd(DEBUG_PARSE, "%s:%d:range\n", zconf_curname(), zconf_lineno());
 };
+
+config_option: T_SHAVECORECOUNT T_EOL
+{};
 
 symbol_option: T_OPTION symbol_option_list T_EOL
 ;
@@ -397,6 +405,36 @@ comment_stmt: comment depends_list
 {
 	menu_end_entry();
 };
+
+
+shaveapp_stmt: shaveapp_entry_start shaveapp_option_list
+;
+
+shaveapp_entry_start: T_SHAVEAPP T_WORD T_EOL
+{
+  menu_add_shaveapp($2);
+};
+
+shaveapp_option_list:
+    /* empty */
+  | shaveapp_option_list shaveapp_option
+  | shaveapp_option_list help
+  | shaveapp_option_list T_EOL
+;
+
+shaveapp_option: T_SHAVEGROUP T_WORD T_EOL
+{
+  menu_add_shavegroup($2);
+};
+
+shaveapp_option: T_ENTRYPOINTS T_WORD_QUOTE T_EOL
+{
+  /* TODO we should check here the menu entry is a shaveapp */
+  menu_add_shave_entrypoints($2);
+};
+
+shaveapp_option: T_PROMPT prompt T_EOL
+;
 
 /* help option */
 
