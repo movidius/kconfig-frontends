@@ -558,7 +558,7 @@ int main(int ac, char **av)
 	}
 	name = av[optind];
 	conf_parse(name);
-	//zconfdump(stdout);
+  //zconfdump(stdout);
 	if (sync_kconfig) {
 		name = conf_get_configname();
 		if (stat(name, &tmpstat)) {

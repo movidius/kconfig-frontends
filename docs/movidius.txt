@@ -1,4 +1,113 @@
 Movidius extensions to kconfig
 ------------------------------
 
+Movidius SoCs provide several kinds of processors and the most notable one is
+the SHAVE processor. The classic kconfig system can still be used to configure
+applications for the Movidius SoCs but you'll find yourself typing a lot of
+repetitive settings. So here are the extensions we added to kconfig in order
+to save you typing but, most of all, precious maintenance time.
+
+This specific version of the kconfig-frontends is actually used by Movidius
+Development Kit, or the MDK.
+
+When configuring an application for one of the Movidius SoCs you need to
+define the following steps:
+
+- define the number of SHAVE cores your SoC has
+- define SHAVE groups
+- define SHAVE applications
+
+Defining the number of SHAVE cores
+==================================
+
+Your configuration files need to contain an `int` configuration option holding
+the number of cores. Then you need to mark that configuration option with the
+special attribute `shavecorecount` and that's it.
+
+If you're using the Movidius MDK, the you already have this entry defined.
+
+Defining the SHAVE groups
+=========================
+
+SHAVE groups are sharing the same set of libraries when linking. This is used
+in order to reduce link-time and image size.
+
+A SHAVE group can be defined this way:
+
+  config SHAVE_GROUP_DEFAULT
+    string
+    prompt "Default SHAVE group libraries"
+    default "lib1 lib2"
+    help
+      A SHAVE group let you define a set of libraries to be used during the link
+      process when building SHAVE applications. This is the default SHAVE group
+      and you can use it in case you're not sure if you need a separate group.
+
+So the SHAVE group definition is a regular string configuration option and
+that's it. The value holds a list of libraries that the build-system will use
+to link the SHAVE applications.
+
+This special configuration option will be referred when defining SHAVE
+applications.
+
+Defining a SHAVE application
+============================
+
+A SHAVE application is a special library meant to be embedded into an ELF
+image. That library hold together a set of routines meant to perform a
+specific task. A SHAVE application can be dynamically loaded or can be
+statically loaded upon the ELF loading. Either way, you declare the SHAVED
+application using the special configuration keyword `shaveapp` like this:
+
+  shaveapp <APP_ID>
+    prompt "APP application options"
+    shavegroup <SHAVE GROUP ID>
+    entrypoints "entry points separated by spaces"
+    help
+      <Help text describing your application>
+
+When declaring this and running one of the front-ends, you'll be presented with
+a graphical sub-menu allowing you to adjust the settings of your SHAVE
+application. This is possible because this entry is a shortcut for a number of
+other configuration options, listed below.
+
+| Options | Types | Descriptions
+|===
+
+SHAVEAPP_LIST
+string
+Automatically extended with the full list of the `shaveapp` definitions found into your configuration. You should never change the value of this configuration option.
+
+USE_SHAVEAPP_<ID>
+boolean
+Check box allowing you to choose not to build the given SHAVE application
+
+SHAVEAPP_<ID>_SRCS_DIR
+string
+holds the path to the given SHAVE application sources directory
+
+SHAVEPP_<ID>_ENTRY_POINTS
+string
+This is a verbatim copy of the attribute `entrypoints` applied to the `shaveapp` entry. You're allowed to change the value of this option later when configuring the application.
+
+SHAVEAPP_<ID>_TYPE
+choice
+This allows you to choose if your application is static or if it uses dynamic loading
+
+SHAVEAPP_<ID>_TYPE_STATIC
+boolean
+This corresponds to the static SHAVE application choice
+
+SHAVEAPP_<ID>_TYPE_DYNAMIC
+boolean
+This corresponds to the dynamic SHAVE application choice
+
+SHAVEAPP_<ID>_PLACEMENT
+menu
+This is a menu containing a set of other configuration options allowing you to specify on what SHAVEs to place this *static* application. This menu do not appear for dynamically loaded applications.
+
+SHAVEAPP_<ID>_SHAVE_CORE_[0..N]
+boolean
+This is a set of booleans generated inside the SHAVE application placement menu. The number of entries corresponds to the special `shavecorecount` configuration option described above in this document.
+
 

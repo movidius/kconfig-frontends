@@ -88,6 +88,8 @@ const char *sym_type_name(enum symbol_type type)
 		return "string";
 	case S_UNKNOWN:
 		return "unknown";
+  case S_SHAVEAPP:
+    return "shaveapp";
 	case S_OTHER:
 		break;
 	}
@@ -323,6 +325,9 @@ void sym_calc_value(struct symbol *sym)
 	case S_TRISTATE:
 		newval = symbol_no.curr;
 		break;
+  case S_SHAVEAPP:
+		newval = symbol_empty.curr;
+    break;
 	default:
 		sym->curr.val = sym->name;
 		sym->curr.tri = no;
@@ -750,6 +755,7 @@ const char *sym_get_string_default(struct symbol *sym)
 		return str;
 	case S_STRING:
 		return str;
+  case S_SHAVEAPP:
 	case S_OTHER:
 	case S_UNKNOWN:
 		break;
@@ -795,6 +801,10 @@ static unsigned strhash(const char *s)
 	return hash;
 }
 
+/*
+ * This searches for a symbol given it's name
+ * Returns the symbol if found or creates a new symbol on the fly if not found
+ */
 struct symbol *sym_lookup(const char *name, int flags)
 {
 	struct symbol *symbol;

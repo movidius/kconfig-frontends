@@ -15,7 +15,7 @@
 
 #define printd(mask, fmt...) if (cdebug & (mask)) printf(fmt)
 
-#define PRINTD		0x0001
+#define PRINTD		0x0003
 #define DEBUG_PARSE	0x0002
 
 int cdebug = PRINTD;
@@ -26,9 +26,13 @@ static void zconf_error(const char *err, ...);
 static void zconferror(const char *err);
 static bool zconf_endtoken(const struct kconf_id *id, int starttoken, int endtoken);
 
+static void shaveapp_create_shaveapp_list();
+static void shaveapp_add_to_list(const char *shaveapp_id);
+
 struct symbol *symbol_hash[SYMBOL_HASHSIZE];
 
 static struct menu *current_menu, *current_entry;
+static char *shave_app_list =NULL;
 
 %}
 %expect 34
@@ -104,6 +108,12 @@ static struct menu *current_menu, *current_entry;
 %}
 
 %%
+kcnf: input 
+{
+  shaveapp_create_shaveapp_list();
+  zconfdump(stdout);
+};
+
 input: nl start | start;
 
 start: mainmenu_stmt stmt_list | stmt_list;
@@ -412,15 +422,28 @@ shaveapp_stmt: shaveapp_entry_start shaveapp_option_list
 
 shaveapp_entry_start: T_SHAVEAPP T_WORD T_EOL
 {
-  menu_add_shaveapp($2);
+  struct symbol *sym = sym_lookup($2, 0);
+  sym->flags |= SYMBOL_AUTO;
+	sym->flags |= SYMBOL_OPTIONAL;
+  menu_add_entry(NULL);
+  /* menu_set_type(S_SHAVEAPP);  */
+
+  shaveapp_add_to_list($2);
+
+	printd(DEBUG_PARSE, "%s:%d:shaveapp %s\n", zconf_curname(), zconf_lineno(), $2);
 };
 
 shaveapp_option_list:
     /* empty */
   | shaveapp_option_list shaveapp_option
   | shaveapp_option_list help
-  | shaveapp_option_list T_EOL
+  | shaveapp_option_list T_EOL {  menu_end_menu(); }
 ;
+
+shaveapp_option: T_PROMPT prompt T_EOL
+{
+  menu_add_prompt(P_MENU, $2, NULL);
+};
 
 shaveapp_option: T_SHAVEGROUP T_WORD T_EOL
 {
@@ -432,9 +455,6 @@ shaveapp_option: T_ENTRYPOINTS T_WORD_QUOTE T_EOL
   /* TODO we should check here the menu entry is a shaveapp */
   menu_add_shave_entrypoints($2);
 };
-
-shaveapp_option: T_PROMPT prompt T_EOL
-;
 
 /* help option */
 
@@ -522,6 +542,51 @@ word_opt: /* empty */			{ $$ = NULL; }
 
 %%
 
+// TODO no longer create the SHAVEAPP_LIST on the fly, but create it upon
+// finalization of the configuration, upon parsing end
+
+void shaveapp_create_shaveapp_list() {
+  if (shave_app_list == NULL)
+    return; // nothing to do here
+
+  struct menu *save_current_menu = current_menu;
+  current_menu = &rootmenu;
+
+  struct symbol *sym_shaveapp_list = sym_lookup("SHAVEAPP_LIST", 0);
+  sym_shaveapp_list->flags |= SYMBOL_OPTIONAL;
+  sym_shaveapp_list->type = S_STRING;
+  menu_add_entry(sym_shaveapp_list);
+  menu_add_prop(P_DEFAULT, NULL,
+    expr_alloc_symbol(sym_lookup(shave_app_list,0)), NULL);
+  sym_calc_value(sym_shaveapp_list);
+
+  current_menu = save_current_menu;
+
+	printd(DEBUG_PARSE, "%s:%d:config (shaveapp)%s\n", zconf_curname(),
+    zconf_lineno(), "SHAVEAPP_LIST");
+}
+
+void shaveapp_add_to_list(const char *shaveapp_id)
+{
+  const char *old_shaveapp_list = shave_app_list;
+  size_t new_list_len = (old_shaveapp_list ? strlen(old_shaveapp_list) : 0)+
+    strlen(shaveapp_id)+2;
+  char *new_shaveapp_list = xcalloc(sizeof(char), new_list_len);
+  new_shaveapp_list[0] = '\0';
+  if (old_shaveapp_list) {
+    strncat(new_shaveapp_list, old_shaveapp_list, new_list_len);
+    new_list_len -= strlen(old_shaveapp_list);
+    strncat(new_shaveapp_list, " ", new_list_len);
+    new_list_len -= sizeof(char);
+  }
+  strncat(new_shaveapp_list, shaveapp_id, new_list_len);
+
+  if (old_shaveapp_list) {
+      free((void*)old_shaveapp_list);
+  }
+  shave_app_list = new_shaveapp_list;
+}
+
 void conf_parse(const char *name)
 {
 	struct symbol *sym;
@@ -565,6 +630,7 @@ static const char *zconf_tokenname(int token)
 	case T_ENDIF:		return "endif";
 	case T_DEPENDS:		return "depends";
 	case T_VISIBLE:		return "visible";
+  case T_SHAVEAPP: return "shaveapp";
 	}
 	return "<token>";
 }
@@ -659,6 +725,9 @@ static void print_symbol(FILE *out, struct menu *menu)
 	case S_HEX:
 		fputs("  hex\n", out);
 		break;
+  case S_SHAVEAPP:
+    fputs("  shaveapp\n", out);
+    break;
 	default:
 		fputs("  ???\n", out);
 		break;

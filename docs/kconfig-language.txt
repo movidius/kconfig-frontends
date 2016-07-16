@@ -1,6 +1,12 @@
 Introduction
 ------------
 
+This is the Movidius-specific kconfig-frontends fork. It performs largely like
+the original kconfig-frontends project, but it has some extensions allowing
+configuration of the applications using the Movidius SoCs. The rest of this
+document holds the original documentation. Movidius-specific syntax can be
+found in the movidius.txt document.
+
 The configuration database is a collection of configuration options
 organized in a tree structure:
 

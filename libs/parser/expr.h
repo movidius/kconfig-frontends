@@ -60,7 +60,7 @@ struct symbol_value {
 };
 
 enum symbol_type {
-	S_UNKNOWN, S_BOOLEAN, S_TRISTATE, S_INT, S_HEX, S_STRING, S_OTHER
+	S_UNKNOWN, S_BOOLEAN, S_TRISTATE, S_INT, S_HEX, S_STRING, S_SHAVEAPP, S_OTHER
 };
 
 /* enum values are used as index to symbol.def[] */
@@ -91,6 +91,7 @@ struct symbol {
 #define SYMBOL_CHECK      0x0008  /* used during dependency checking */
 #define SYMBOL_CHOICE     0x0010  /* start of a choice block (null name) */
 #define SYMBOL_CHOICEVAL  0x0020  /* used as a value in a choice block */
+#define SYMBOL_SHAVEAPP   0x0040  /* symbol is a shaveapp */
 #define SYMBOL_VALID      0x0080  /* set when symbol.curr is calculated */
 #define SYMBOL_OPTIONAL   0x0100  /* choice is optional - values can be 'n' */
 #define SYMBOL_WRITE      0x0200  /* ? */

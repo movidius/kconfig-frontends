@@ -574,7 +574,11 @@ static void build_conf(struct menu *menu)
 			}
 			return;
 		}
-	} else {
+	} else if (sym_is_shaveapp(sym)) {
+    item_make("SHAVE APP");
+    item_set_tag(':');
+    item_set_data(menu);
+  } else {
 		if (menu == current_menu) {
 			item_make("---%*c%s", indent + 1, ' ', _(menu_get_prompt(menu)));
 			item_set_tag(':');
@@ -1014,7 +1018,7 @@ int main(int ac, char **av)
 
 	conf_parse(av[1]);
 	conf_read(NULL);
-
+  zconfdump(stdout);
 	mode = getenv("MENUCONFIG_MODE");
 	if (mode) {
 		if (!strcasecmp(mode, "single_menu"))
