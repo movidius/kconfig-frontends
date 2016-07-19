@@ -28,11 +28,14 @@ static bool zconf_endtoken(const struct kconf_id *id, int starttoken, int endtok
 
 static void shaveapp_create_shaveapp_list();
 static void shaveapp_add_to_list(const char *shaveapp_id);
+static void shaveapp_generate_use(const char *shaveapp_id);
+static void shaveapp_add_entrypoints(const char *entrypoints);
 
 struct symbol *symbol_hash[SYMBOL_HASHSIZE];
 
 static struct menu *current_menu, *current_entry;
 static char *shave_app_list =NULL;
+static const char *current_shaveapp = NULL;
 
 %}
 %expect 34
@@ -94,6 +97,7 @@ static char *shave_app_list =NULL;
 %type <id> option_name
 %type <menu> if_entry menu_entry choice_entry
 %type <string> symbol_option_arg word_opt
+%type <string> shaveapp_entry_start
 
 %destructor {
 	fprintf(stderr, "%s:%d: missing end statement for this entry\n",
@@ -418,17 +422,21 @@ comment_stmt: comment depends_list
 
 
 shaveapp_stmt: shaveapp_entry_start shaveapp_option_list
-;
+{
+	printd(DEBUG_PARSE, "%s:%d:shaveapp end %s\n", zconf_curname(), zconf_lineno(), $1);
+
+  shaveapp_generate_use($1);
+  menu_end_menu();
+  current_shaveapp = NULL;
+};
 
 shaveapp_entry_start: T_SHAVEAPP T_WORD T_EOL
 {
-  struct symbol *sym = sym_lookup($2, 0);
-  sym->flags |= SYMBOL_AUTO;
-	sym->flags |= SYMBOL_OPTIONAL;
-  menu_add_entry(NULL);
-  /* menu_set_type(S_SHAVEAPP);  */
-
+  $$ = $2;
+  current_shaveapp = $2;
   shaveapp_add_to_list($2);
+
+  menu_add_entry(NULL);
 
 	printd(DEBUG_PARSE, "%s:%d:shaveapp %s\n", zconf_curname(), zconf_lineno(), $2);
 };
@@ -437,23 +445,27 @@ shaveapp_option_list:
     /* empty */
   | shaveapp_option_list shaveapp_option
   | shaveapp_option_list help
-  | shaveapp_option_list T_EOL {  menu_end_menu(); }
+  | shaveapp_option_list T_EOL
 ;
 
 shaveapp_option: T_PROMPT prompt T_EOL
 {
   menu_add_prompt(P_MENU, $2, NULL);
+  menu_add_menu();
+	printd(DEBUG_PARSE, "%s:%d:shaveapp prompt\n", zconf_curname(), zconf_lineno());
 };
 
 shaveapp_option: T_SHAVEGROUP T_WORD T_EOL
 {
   menu_add_shavegroup($2);
+	printd(DEBUG_PARSE, "%s:%d:shaveapp shavegroup\n", zconf_curname(), zconf_lineno());
 };
 
 shaveapp_option: T_ENTRYPOINTS T_WORD_QUOTE T_EOL
 {
   /* TODO we should check here the menu entry is a shaveapp */
-  menu_add_shave_entrypoints($2);
+  shaveapp_add_entrypoints($2);
+	printd(DEBUG_PARSE, "%s:%d:shaveapp entrypoints\n", zconf_curname(), zconf_lineno());
 };
 
 /* help option */
@@ -545,7 +557,8 @@ word_opt: /* empty */			{ $$ = NULL; }
 // TODO no longer create the SHAVEAPP_LIST on the fly, but create it upon
 // finalization of the configuration, upon parsing end
 
-void shaveapp_create_shaveapp_list() {
+void shaveapp_create_shaveapp_list()
+{
   if (shave_app_list == NULL)
     return; // nothing to do here
 
@@ -585,6 +598,50 @@ void shaveapp_add_to_list(const char *shaveapp_id)
       free((void*)old_shaveapp_list);
   }
   shave_app_list = new_shaveapp_list;
+}
+
+void create_shaveapp_config_symbol(const char *sym_format,
+    const char *prompt_format, const char *shaveapp_id,
+    enum symbol_type type, const char *default_val)
+{
+  size_t sym_name_len = strlen(shaveapp_id)+strlen(sym_format);
+  char *sym_name = xcalloc(sizeof(char), sym_name_len);
+  snprintf(sym_name, sym_name_len, sym_format, shaveapp_id);
+  struct symbol *sym = sym_lookup(sym_name, 0);
+  sym->flags |= SYMBOL_OPTIONAL;
+  sym->type = type;
+
+  size_t prompt_len = strlen(prompt_format) + strlen(shaveapp_id);
+  char *prompt = xcalloc(sizeof(char), prompt_len);
+  snprintf(prompt, prompt_len, prompt_format, shaveapp_id);
+
+  menu_add_entry(sym);
+  menu_add_prompt(P_PROMPT, prompt, NULL);
+  menu_add_expr(P_DEFAULT, expr_alloc_symbol(sym_lookup(default_val,0)), NULL);
+  menu_end_entry();
+}
+
+void shaveapp_generate_use(const char *shaveapp_id)
+{
+  // create the USE_SHAVEAPP_<id> entry with the prompt and the default value
+  const char *SYMBOL_FORMAT = "USE_SHAVEAPP_%s";
+  const char *PROMPT_FORMAT = "Use SHAVE application %s";
+  create_shaveapp_config_symbol(SYMBOL_FORMAT, PROMPT_FORMAT, shaveapp_id,
+      S_BOOLEAN, "y");
+}
+
+void shaveapp_add_entrypoints(const char *entrypoints)
+{
+  if (NULL == current_shaveapp) {
+    zconf_error("entrypoints option encountered without current shaveapp entry");
+    zconfnerrs++;
+    fprintf(stderr, "%s:%d: entrypoints option encountered withoud current shaveapp", current_menu->file->name, current_menu->lineno);
+    return;
+  }
+  const char *SYMBOL_FORMAT = "SHAVEAPP_%s_ENTRY_POINTS";
+  const char *PROMPT_FORMAT = "%s shaveapp entry points list";
+  create_shaveapp_config_symbol(SYMBOL_FORMAT, PROMPT_FORMAT,
+      current_shaveapp, S_STRING, entrypoints);
 }
 
 void conf_parse(const char *name)
