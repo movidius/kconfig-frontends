@@ -31,6 +31,7 @@ static void shaveapp_add_to_list(const char *shaveapp_id);
 static void shaveapp_generate_use(const char *shaveapp_id);
 static void shaveapp_add_entrypoints(const char *entrypoints);
 static void shaveapp_generate_type_choice(const char *shaveapp_id);
+static void shaveapp_generate_placement(const char *shaveapp_id);
 
 struct symbol *symbol_hash[SYMBOL_HASHSIZE];
 
@@ -116,7 +117,7 @@ static const char *current_shaveapp = NULL;
 kcnf: input 
 {
   shaveapp_create_shaveapp_list();
-  zconfdump(stdout);
+  /* zconfdump(stdout);  */
 };
 
 input: nl start | start;
@@ -428,6 +429,7 @@ shaveapp_stmt: shaveapp_entry_start shaveapp_option_list
 
   shaveapp_generate_use($1);
   shaveapp_generate_type_choice($1);
+  shaveapp_generate_placement($1);
   menu_end_menu();
   current_shaveapp = NULL;
 };
@@ -613,15 +615,10 @@ char *shaveapp_alloc_format_string(const char *format,
   return str;
 }
 
-void create_shaveapp_config_symbol(const char *sym_format,
+void shaveapp_create_config_symbol(struct symbol *sym,
     const char *prompt_format, const char *shaveapp_id,
     enum symbol_type type, const char *default_val)
 {
-  char *sym_name = shaveapp_alloc_format_string(sym_format, shaveapp_id);
-  struct symbol *sym = sym_lookup(sym_name, 0);
-  sym->flags |= SYMBOL_OPTIONAL;
-  sym->type = type;
-
   char *prompt = shaveapp_alloc_format_string(prompt_format, shaveapp_id);
 
   menu_add_entry(sym);
@@ -630,12 +627,24 @@ void create_shaveapp_config_symbol(const char *sym_format,
   menu_end_entry();
 }
 
+void shaveapp_create_config(const char *sym_format,
+    const char *prompt_format, const char *shaveapp_id,
+    enum symbol_type type, const char *default_val)
+{
+  char *sym_name = shaveapp_alloc_format_string(sym_format, shaveapp_id);
+  struct symbol *sym = sym_lookup(sym_name, 0);
+  sym->flags |= SYMBOL_OPTIONAL;
+  sym->type = type;
+
+  shaveapp_create_config_symbol(sym, prompt_format, shaveapp_id, type, default_val);
+}
+
 void shaveapp_generate_use(const char *shaveapp_id)
 {
   // create the USE_SHAVEAPP_<id> entry with the prompt and the default value
   const char *SYMBOL_FORMAT = "USE_SHAVEAPP_%s";
   const char *PROMPT_FORMAT = "Use SHAVE application %s";
-  create_shaveapp_config_symbol(SYMBOL_FORMAT, PROMPT_FORMAT, shaveapp_id,
+  shaveapp_create_config(SYMBOL_FORMAT, PROMPT_FORMAT, shaveapp_id,
       S_BOOLEAN, "y");
 }
 
@@ -649,9 +658,11 @@ void shaveapp_add_entrypoints(const char *entrypoints)
   }
   const char *SYMBOL_FORMAT = "SHAVEAPP_%s_ENTRY_POINTS";
   const char *PROMPT_FORMAT = "%s shaveapp entry points list";
-  create_shaveapp_config_symbol(SYMBOL_FORMAT, PROMPT_FORMAT,
+  shaveapp_create_config(SYMBOL_FORMAT, PROMPT_FORMAT,
       current_shaveapp, S_STRING, entrypoints);
 }
+
+const char *SYMBOL_FORMAT_SHAVEAPP_TYPE_STATIC = "SHAVEAPP_%s_TYPE_STATIC";
 
 void shaveapp_generate_type_choice(const char *shaveapp_id)
 {
@@ -671,17 +682,55 @@ void shaveapp_generate_type_choice(const char *shaveapp_id)
   }
 
   {
-    const char *SYMBOL_FORMAT = "SHAVEAPP_%s_TYPE_STATIC";
     const char *PROMPT_FORMAT = "Make %s shaveapp be static";
-    create_shaveapp_config_symbol(SYMBOL_FORMAT, PROMPT_FORMAT, shaveapp_id, S_BOOLEAN, "y");
+    shaveapp_create_config(SYMBOL_FORMAT_SHAVEAPP_TYPE_STATIC, PROMPT_FORMAT, shaveapp_id, S_BOOLEAN, "y");
   }
   {
     const char *SYMBOL_FORMAT = "SHAVEAPP_%s_TYPE_DYNAMIC";
     const char *PROMPT_FORMAT = "Make %s shaveapp be dynamic";
-    create_shaveapp_config_symbol(SYMBOL_FORMAT, PROMPT_FORMAT, shaveapp_id, S_BOOLEAN, "n");
+    shaveapp_create_config(SYMBOL_FORMAT, PROMPT_FORMAT, shaveapp_id, S_BOOLEAN, "n");
   }
 
   // close the choice we started above
+  menu_end_menu();
+}
+
+void shaveapp_generate_placement(const char *shaveapp_id)
+{
+  {
+    const char *PROMPT_FORMAT = "%s shaveapp placement";
+    char *prompt = shaveapp_alloc_format_string(PROMPT_FORMAT, shaveapp_id);
+    menu_add_entry(NULL);
+    menu_add_prompt(P_MENU, prompt, NULL);
+    menu_add_menu();
+  }
+  const int SHAVE_CORE_COUNT=12; // TODO lookup the specially defined symbol and get it's value here
+  for (int i=0; i<SHAVE_CORE_COUNT;i++) {
+    const char *SYMBOL_FORMAT = "SHAVEAPP_%s_PLACE_CORE%d";
+    size_t sym_len = strlen(SYMBOL_FORMAT)+strlen(shaveapp_id);
+    char *sym_name = xcalloc(sizeof(char), sym_len);
+    snprintf(sym_name, sym_len, SYMBOL_FORMAT, shaveapp_id, i);
+    struct symbol *sym = sym_lookup(sym_name, 0);
+    sym->flags |= SYMBOL_OPTIONAL;
+    sym->type = S_BOOLEAN;
+
+    const char *PROMPT_FORMAT = "Place the %s shaveapp on SHAVE core %d";
+    size_t prompt_len = strlen(PROMPT_FORMAT)+strlen(shaveapp_id)+10;
+    char *prompt = xcalloc(sizeof(char), prompt_len);
+    snprintf(prompt, prompt_len, PROMPT_FORMAT, shaveapp_id, i);
+
+    size_t dep_symbol_len = strlen(SYMBOL_FORMAT_SHAVEAPP_TYPE_STATIC)+strlen(shaveapp_id);
+    char *dep_symbol = xcalloc(sizeof(char), dep_symbol_len);
+    snprintf(dep_symbol, dep_symbol_len, SYMBOL_FORMAT_SHAVEAPP_TYPE_STATIC, shaveapp_id);
+    struct expr *dep_expr = expr_alloc_symbol(sym_lookup(dep_symbol,0));
+
+    menu_add_entry(sym);
+    menu_add_prompt(P_PROMPT, prompt, NULL);
+    menu_add_expr(P_DEFAULT, expr_alloc_symbol(sym_lookup(i == 0 ? "y" : "n",0)), NULL);
+    menu_add_dep(dep_expr);
+    menu_end_entry();
+  }
+
   menu_end_menu();
 }
 

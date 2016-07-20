@@ -1018,7 +1018,7 @@ int main(int ac, char **av)
 
 	conf_parse(av[1]);
 	conf_read(NULL);
-  zconfdump(stdout);
+  /* zconfdump(stdout); */
 	mode = getenv("MENUCONFIG_MODE");
 	if (mode) {
 		if (!strcasecmp(mode, "single_menu"))
