@@ -26,6 +26,8 @@ special attribute `shavecorecount` and that's it.
 
 If you're using the Movidius MDK, the you already have this entry defined.
 
+NOTE: this feature is not yet finished. The kconfig system currently assumes you're using SoCs with 12 SHAVE cores.
+
 Defining the SHAVE groups
 =========================
 
@@ -106,7 +108,7 @@ SHAVEAPP_<ID>_PLACEMENT
 menu
 This is a menu containing a set of other configuration options allowing you to specify on what SHAVEs to place this *static* application. This menu do not appear for dynamically loaded applications.
 
-SHAVEAPP_<ID>_SHAVE_CORE_[0..N]
+SHAVEAPP_<ID>_PLACE_CORE_[0..N]
 boolean
 This is a set of booleans generated inside the SHAVE application placement menu. The number of entries corresponds to the special `shavecorecount` configuration option described above in this document.
 
