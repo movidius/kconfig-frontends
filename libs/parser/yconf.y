@@ -575,6 +575,7 @@ void shaveapp_create_shaveapp_list()
   menu_add_entry(sym_shaveapp_list);
   menu_add_prop(P_DEFAULT, NULL,
     expr_alloc_symbol(sym_lookup(shave_app_list,0)), NULL);
+  menu_end_entry();
   sym_calc_value(sym_shaveapp_list);
 
   current_menu = save_current_menu;
