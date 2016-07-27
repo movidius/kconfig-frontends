@@ -569,14 +569,81 @@ void shaveapp_create_shaveapp_list()
   struct menu *save_current_menu = current_menu;
   current_menu = &rootmenu;
 
-  struct symbol *sym_shaveapp_list = sym_lookup("SHAVEAPP_LIST", 0);
-  sym_shaveapp_list->flags |= SYMBOL_OPTIONAL;
-  sym_shaveapp_list->type = S_STRING;
-  menu_add_entry(sym_shaveapp_list);
-  menu_add_prop(P_DEFAULT, NULL,
-    expr_alloc_symbol(sym_lookup(shave_app_list,0)), NULL);
-  menu_end_entry();
-  sym_calc_value(sym_shaveapp_list);
+  {
+    const char *PROMPT_FORMAT = "Invisible shaveapp internal options";
+    menu_add_entry(NULL);
+    menu_add_prompt(P_MENU, (char*)PROMPT_FORMAT, NULL);
+    menu_add_visibility(expr_alloc_symbol(sym_lookup("n",0)));
+  }
+
+  {
+    const char *SYMBOL_FORMAT = "APP_USES_SHAVEAPPS";
+    struct symbol *sym = sym_lookup(SYMBOL_FORMAT, 0);
+    sym->flags |= SYMBOL_OPTIONAL;
+    sym->type = S_BOOLEAN;
+
+    menu_add_entry(sym);
+
+    struct expr *left_expr = NULL;
+    if (NULL == shave_app_list) {
+      left_expr = expr_alloc_symbol(sym_lookup("n",0));
+    } else {
+      // now build an OR expression with all the shaveapps we found
+      const char *sym_list_start = shave_app_list;
+      const char *sym_list_end = sym_list_start;
+      for (;; sym_list_end++) {
+
+        if (' ' == *sym_list_end || !*sym_list_end) {
+          while (' ' == *sym_list_start)
+            sym_list_start++; // skip over leading spaces if any;
+          size_t sym_length = sym_list_end - sym_list_start;
+          char symbol_name[sym_length +1];
+          strncpy(symbol_name, sym_list_start, sym_length);
+          symbol_name[sym_length] = 0;
+
+          const char *CONFIG_VALUE_FORMAT = "USE_SHAVEAPP_%s";
+          size_t config_value_len = strlen(CONFIG_VALUE_FORMAT)+sym_length;
+          char *config_value = xcalloc(sizeof(char), config_value_len);
+          snprintf(config_value, config_value_len, CONFIG_VALUE_FORMAT, symbol_name);
+
+          struct symbol *curr_symbol = sym_lookup(config_value, 0);
+          if (NULL == left_expr) {
+            left_expr = expr_alloc_symbol(curr_symbol);
+          } else {
+            left_expr = expr_alloc_two(E_OR, left_expr,
+                expr_alloc_symbol(curr_symbol));
+          }
+
+          sym_list_start = sym_list_end; // reset this pointer for next occurrence
+        }
+
+        if (!*sym_list_end && sym_list_end == sym_list_start)
+          break;
+      }
+    }
+    if (NULL != left_expr) {
+      menu_add_expr(P_DEFAULT, left_expr, NULL);
+      menu_set_type(S_BOOLEAN);
+    }
+    menu_end_entry();
+    sym_calc_value(sym);
+  }
+
+  {
+    struct symbol *sym_shaveapp_list = sym_lookup("SHAVEAPP_LIST", 0);
+    sym_shaveapp_list->flags |= SYMBOL_OPTIONAL;
+    sym_shaveapp_list->type = S_STRING;
+    menu_add_entry(sym_shaveapp_list);
+    menu_add_prop(P_DEFAULT, NULL,
+      expr_alloc_symbol(sym_lookup(shave_app_list,0)), NULL);
+    menu_end_entry();
+    sym_calc_value(sym_shaveapp_list);
+  }
+
+  {
+    menu_end_menu();
+    menu_add_menu();
+  }
 
   current_menu = save_current_menu;
 
