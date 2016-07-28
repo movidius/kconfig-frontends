@@ -15,7 +15,7 @@
 
 #define printd(mask, fmt...) if (cdebug & (mask)) printf(fmt)
 
-#define PRINTD		0x0003
+#define PRINTD		0x0001
 #define DEBUG_PARSE	0x0002
 
 int cdebug = PRINTD;
@@ -691,7 +691,9 @@ void shaveapp_create_config_symbol(struct symbol *sym,
 
   menu_add_entry(sym);
   menu_add_prompt(P_PROMPT, prompt, NULL);
-  menu_add_expr(P_DEFAULT, expr_alloc_symbol(sym_lookup(default_val,0)), NULL);
+  if (default_val) {
+    menu_add_expr(P_DEFAULT, expr_alloc_symbol(sym_lookup(default_val,0)), NULL);
+  }
   menu_end_entry();
 }
 
@@ -751,12 +753,12 @@ void shaveapp_generate_type_choice(const char *shaveapp_id)
 
   {
     const char *PROMPT_FORMAT = "Make %s shaveapp be static";
-    shaveapp_create_config(SYMBOL_FORMAT_SHAVEAPP_TYPE_STATIC, PROMPT_FORMAT, shaveapp_id, S_BOOLEAN, "y");
+    shaveapp_create_config(SYMBOL_FORMAT_SHAVEAPP_TYPE_STATIC, PROMPT_FORMAT, shaveapp_id, S_BOOLEAN, NULL);
   }
   {
     const char *SYMBOL_FORMAT = "SHAVEAPP_%s_TYPE_DYNAMIC";
     const char *PROMPT_FORMAT = "Make %s shaveapp be dynamic";
-    shaveapp_create_config(SYMBOL_FORMAT, PROMPT_FORMAT, shaveapp_id, S_BOOLEAN, "n");
+    shaveapp_create_config(SYMBOL_FORMAT, PROMPT_FORMAT, shaveapp_id, S_BOOLEAN, NULL);
   }
 
   // close the choice we started above
