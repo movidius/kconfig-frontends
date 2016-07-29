@@ -3,7 +3,7 @@
  * Released under the terms of the GNU GPL v2.0.
  */
 
-#include <qglobal.h>
+#include <QtCore/qglobal.h>
 
 #if QT_VERSION < 0x040000
 #include <stddef.h>
