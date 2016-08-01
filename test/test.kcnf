@@ -1,0 +1,26 @@
+menu "Test configuration"
+
+config SHAVE_GROUP_DEFAULT
+  string
+  prompt "Default SHAVE group libraries"
+  default "lib1 lib2"
+  help
+    A SHAVE group let you define a set of libraries to be used during the link
+    process when building SHAVE applications. This is the default SHAVE group
+    and you can use it in case you're not sure if you need a separate group.
+
+
+
+shaveapp PP_GAUSS
+  prompt "pp_gauss application options"
+  shavegroup SHAVE_GROUP_DEFAULT
+  entrypoints "PyrLevel gaussInit dmaId dmaTrans fifoCommSlaveRun"
+  help
+    This is the definition of a SHAVE application, named pp_gauss. The custom
+    kconfig system will automatically generate entries for it. It'll also
+    generate a sub-menu for the SHAVE placement where you'll be presented with
+    a series of check-boxes corresponding to the selected platform SHAVE
+    core-count. kconfig knows that value from the config entry marked with the
+    attribute `shavecorecount`
+
+endmenu
