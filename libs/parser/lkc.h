@@ -116,9 +116,6 @@ struct property *menu_add_prop(enum prop_type type, char *prompt, struct expr *e
 struct property *menu_add_prompt(enum prop_type type, char *prompt, struct expr *dep);
 void menu_add_expr(enum prop_type type, struct expr *expr, struct expr *dep);
 void menu_add_symbol(enum prop_type type, struct symbol *sym, struct expr *dep);
-void menu_add_shavegroup(const char *name);
-void menu_add_shaveapp(const char *name);
-void menu_add_shave_libraries(const char *libraries);
 void menu_add_option(int token, char *arg);
 void menu_finalize(struct menu *parent);
 void menu_set_type(int type);

@@ -32,12 +32,14 @@ static void shaveapp_generate_use(const char *shaveapp_id);
 static void shaveapp_add_entrypoints(const char *entrypoints);
 static void shaveapp_generate_type_choice(const char *shaveapp_id);
 static void shaveapp_generate_placement(const char *shaveapp_id);
+static void shavegroup_add_to_list(const char *shavegroup_id);
 
 struct symbol *symbol_hash[SYMBOL_HASHSIZE];
 
 static struct menu *current_menu, *current_entry;
 static char *shave_app_list =NULL;
 static const char *current_shaveapp = NULL;
+static char *shave_group_list = NULL;
 
 %}
 %expect 34
@@ -461,7 +463,7 @@ shaveapp_option: T_PROMPT prompt T_EOL
 
 shaveapp_option: T_SHAVEGROUP T_WORD T_EOL
 {
-  menu_add_shavegroup($2);
+  shavegroup_add_to_list($2);
 	printd(DEBUG_PARSE, "%s:%d:shaveapp shavegroup\n", zconf_curname(), zconf_lineno());
 };
 
@@ -563,9 +565,6 @@ word_opt: /* empty */			{ $$ = NULL; }
 
 void shaveapp_create_shaveapp_list()
 {
-  if (shave_app_list == NULL)
-    return; // nothing to do here
-
   struct menu *save_current_menu = current_menu;
   current_menu = &rootmenu;
 
@@ -576,6 +575,7 @@ void shaveapp_create_shaveapp_list()
     menu_add_visibility(expr_alloc_symbol(sym_lookup("n",0)));
   }
 
+  if (shave_app_list != NULL)
   {
     const char *SYMBOL_FORMAT = "APP_USES_SHAVEAPPS";
     struct symbol *sym = sym_lookup(SYMBOL_FORMAT, 0);
@@ -629,7 +629,23 @@ void shaveapp_create_shaveapp_list()
     sym_calc_value(sym);
   }
 
-  {
+  if (shave_group_list != NULL) {
+    /* hack: add a " " to the group list if not already present in order to
+     * trick the system when we'll call sym_calc_value below. without this
+     * space, the system will replace the name of a single group with it's
+     * actual value, which is a library list. this is not the desirable. */
+    shavegroup_add_to_list(" ");
+
+    struct symbol *sym_shavegroup_list = sym_lookup("SHAVEGROUP_LIST", 0);
+    sym_shavegroup_list->flags |= SYMBOL_OPTIONAL;
+    sym_shavegroup_list->type = S_STRING;
+    menu_add_entry(sym_shavegroup_list);
+    menu_add_prop(P_DEFAULT, NULL,
+      expr_alloc_symbol(sym_lookup(shave_group_list,0)), NULL);
+    menu_end_entry();
+  }
+
+  if (shave_app_list != NULL) {
     struct symbol *sym_shaveapp_list = sym_lookup("SHAVEAPP_LIST", 0);
     sym_shaveapp_list->flags |= SYMBOL_OPTIONAL;
     sym_shaveapp_list->type = S_STRING;
@@ -651,25 +667,38 @@ void shaveapp_create_shaveapp_list()
     zconf_lineno(), "SHAVEAPP_LIST");
 }
 
-void shaveapp_add_to_list(const char *shaveapp_id)
+void append_to_list(char **list, const char *item)
 {
-  const char *old_shaveapp_list = shave_app_list;
-  size_t new_list_len = (old_shaveapp_list ? strlen(old_shaveapp_list) : 0)+
-    strlen(shaveapp_id)+2;
-  char *new_shaveapp_list = xcalloc(sizeof(char), new_list_len);
-  new_shaveapp_list[0] = '\0';
-  if (old_shaveapp_list) {
-    strncat(new_shaveapp_list, old_shaveapp_list, new_list_len);
-    new_list_len -= strlen(old_shaveapp_list);
-    strncat(new_shaveapp_list, " ", new_list_len);
+  const char *old_list = *list;
+  size_t new_list_len = (old_list ? strlen(old_list) : 0)+
+    strlen(item)+2;
+  char *new_list = xcalloc(sizeof(char), new_list_len);
+  new_list[0] = '\0';
+  if (old_list) {
+    strncat(new_list, old_list, new_list_len);
+    new_list_len -= strlen(old_list);
+    strncat(new_list, " ", new_list_len);
     new_list_len -= sizeof(char);
   }
-  strncat(new_shaveapp_list, shaveapp_id, new_list_len);
+  strncat(new_list, item, new_list_len);
 
-  if (old_shaveapp_list) {
-      free((void*)old_shaveapp_list);
+  if (old_list) {
+      free((void*)old_list);
   }
-  shave_app_list = new_shaveapp_list;
+  *list = new_list;
+}
+
+void shaveapp_add_to_list(const char *shaveapp_id)
+{
+  append_to_list(&shave_app_list, shaveapp_id);
+}
+
+void shavegroup_add_to_list(const char *shavegroup_id)
+{
+  if ((shave_group_list == NULL) ||
+      (strstr(shave_group_list, shavegroup_id) == NULL)) {
+    append_to_list(&shave_group_list, shavegroup_id);
+  }
 }
 
 char *shaveapp_alloc_format_string(const char *format,

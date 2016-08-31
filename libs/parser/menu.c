@@ -190,22 +190,6 @@ void menu_add_expr(enum prop_type type, struct expr *expr, struct expr *dep)
 	menu_add_prop(type, NULL, expr, dep);
 }
 
-void menu_add_shavegroup(const char *name)
-{
-}
-
-void menu_add_shaveapp(const char *name)
-{
-}
-
-void menu_add_shave_libraries(const char *libraries)
-{
-}
-
-void menu_add_shave_entrypoints(const char *entrypoints)
-{
-}
-
 void menu_add_symbol(enum prop_type type, struct symbol *sym, struct expr *dep)
 {
 	menu_add_prop(type, NULL, expr_alloc_symbol(sym), dep);
