@@ -32,7 +32,9 @@ static void shaveapp_generate_use(const char *shaveapp_id);
 static void shaveapp_add_entrypoints(const char *entrypoints);
 static void shaveapp_generate_type_choice(const char *shaveapp_id);
 static void shaveapp_generate_placement(const char *shaveapp_id);
+static void shaveapp_generate_srcs_dir(const char *shaveapp_id);
 static void shavegroup_add_to_list(const char *shavegroup_id);
+static void shavegroup_add_to_current_shaveapp(const char *shavegroup_id);
 
 struct symbol *symbol_hash[SYMBOL_HASHSIZE];
 
@@ -464,6 +466,7 @@ shaveapp_option: T_PROMPT prompt T_EOL
 shaveapp_option: T_SHAVEGROUP T_WORD T_EOL
 {
   shavegroup_add_to_list($2);
+  shavegroup_add_to_current_shaveapp($2);
 	printd(DEBUG_PARSE, "%s:%d:shaveapp shavegroup\n", zconf_curname(), zconf_lineno());
 };
 
@@ -701,6 +704,7 @@ void shavegroup_add_to_list(const char *shavegroup_id)
   }
 }
 
+// TODO free the returned pointers over all this program
 char *shaveapp_alloc_format_string(const char *format,
     const char *shaveapp_id)
 {
@@ -841,6 +845,30 @@ void shaveapp_generate_placement(const char *shaveapp_id)
   }
 
   menu_end_menu();
+}
+
+void shavegroup_add_to_current_shaveapp(const char *groupid)
+{
+  if (NULL == current_shaveapp) {
+    zconf_error("shavegroup attribute must be applied to a shaveapp");
+    zconfnerrs++;
+    fprintf(stderr, "%s:%d shavegroup attribute must be applied to a shaveapp", current_menu->file->name, current_menu->lineno);
+    return;
+  }
+
+  const char *CONFIG_FORMAT = "SHAVEAPP_%s_GROUP";
+  const char *PROMPT_FORMAT = "%s shaveapp group";
+
+  /* dirty HACK: add an extra space at the end of the groupid in order to
+  avoid it getting expanded to the actual's group value */
+  size_t groupid_len = strlen(groupid);
+  char fake_groupid[groupid_len+2];
+  memset(fake_groupid, 0, groupid_len+2);
+  strncpy(fake_groupid, groupid, groupid_len);
+  fake_groupid[groupid_len] = ' ';
+
+  shaveapp_create_config(CONFIG_FORMAT, PROMPT_FORMAT, current_shaveapp,
+      S_STRING, fake_groupid);
 }
 
 void conf_parse(const char *name)
