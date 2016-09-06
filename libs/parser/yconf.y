@@ -745,6 +745,16 @@ void shaveapp_generate_use(const char *shaveapp_id)
   const char *PROMPT_FORMAT = "Use SHAVE application %s";
   shaveapp_create_config(SYMBOL_FORMAT, PROMPT_FORMAT, shaveapp_id,
       S_BOOLEAN, "y");
+
+  shaveapp_generate_srcs_dir(shaveapp_id);
+}
+
+void shaveapp_generate_srcs_dir(const char *shaveapp_id)
+{
+  const char *SYMBOL_FORMAT = "SHAVEAPP_%s_SRCS_DIR";
+  const char *PROMPT_FORMAT = "SHAVE application's %s sources directory";
+  shaveapp_create_config(SYMBOL_FORMAT, PROMPT_FORMAT, shaveapp_id,
+      S_STRING, "");
 }
 
 void shaveapp_add_entrypoints(const char *entrypoints)
