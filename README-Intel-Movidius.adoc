@@ -1,0 +1,92 @@
+= Movidius Intel specific extensions
+
+The usual syntax of the kcnf files is described at the original
+https://www.kernel.org/doc/Documentation/kbuild/kconfig-language.txt[location]
+
+Movidius added two features to the original `kconfig` system:
+
+. Source files can now be included by the relative path
+. Add SHAVE modules configuration support
+
+
+== `Source` statement change
+
+The original `source` statement required the full path to the included file.
+That was a problem in the MDK context, as that defeated the modular
+structure and would have required manual adjustments of the MDK code after
+tarball unzipping or GIT clone. To circumvent these problems, we choose to
+patch the source code and now the `source` statement has this syntax:
+
+
+  source:
+
+    "source" <absolute path|relative path>
+
+  This reads the specified configuration file. The file is always parsed. The
+  path to the included configuration file can be either absolute or relative.
+  If relative, the base directory is the directory of the configuration file
+  containing this `source` statement.
+
+== SHAVE Modules Support
+
+The SHAVE support in MDK requires several configuration settings to be
+repeated for each application. This can be cumbersome and error-prone so we
+choose to add a new statement that acts as a macro for the needed
+configuration entries.
+
+Using the same notations as the one in the original kconfig documentation,
+this will be expressed as this:
+
+  "shaveapp" <symbol>
+    "prompt" <prompt>
+    "shavegroup" <symbol>
+    "entrypoints" <prompt>
+    "help"
+      <help text>
+
+For instance, an entry for the BoxFilterAsm SHAVE Dynamic Loaded module would
+be:
+
+  shaveapp BoxFilterAsm
+    prompt "BoxFilterAsm SHAVE dynamic application"
+    shavegroup SHAVE_GROUP_DEFAULT
+    entrypoints "Entry"
+    help
+      This is the help for the BoxFilterAsm SHAVE dynamic application
+
+Upon invoking the configuration tool, `kconfig-fronteds` will generate these
+visual items:
+
+* A menu entry entitled "BoxFilterAsm SHAVE Dynamic application"
+** A check box entitled "Use SHAVE application BoxFilterAsm"
+** A choice letting you specify if this application should dynamically
+   or statically loaded
+*** A submenu that appears when you choose the statically loaded modules,
+    allowing you to specify on which SHAVE cores to place the module
+** A string entry allowing you to specify the SHAVE group
+** A string entry for the entry point list
+** A string entry allowing overriding the default source directory
+
+This will generate the following entries into the `.config` file:
+
+
+  #
+  # BoxFilterAsm SHAVE dynamic application
+  #
+  CONFIG_SHAVEAPP_BoxFilterAsm_GROUP="SHAVE_GROUP_DEFAULT "
+  CONFIG_SHAVEAPP_BoxFilterAsm_ENTRY_POINTS="Entry"
+  CONFIG_USE_SHAVEAPP_BoxFilterAsm=y
+  CONFIG_SHAVEAPP_BoxFilterAsm_SRCS_DIR=""
+  # CONFIG_SHAVEAPP_BoxFilterAsm_TYPE_STATIC is not set
+  CONFIG_SHAVEAPP_BoxFilterAsm_TYPE_DYNAMIC=y
+
+  #
+  # BoxFilterAsm shaveapp placement
+  #
+
+  CONFIG_SHAVEAPP_LIST="BoxFilterAsm"
+
+The corresponding entries will also be generated into the
+`include/generated/autoconf.h` file.
+
+
