@@ -31,6 +31,13 @@ struct file *file_lookup(const char *name)
 	return file;
 }
 
+/* remove file from list */
+void file_unlist(struct file *file)
+{
+  file_list = file_list->next;
+  free(file);
+}
+
 /* write a dependency file as used by kbuild to track dependencies */
 int file_write_dep(const char *name)
 {
