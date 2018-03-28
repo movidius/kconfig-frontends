@@ -38,52 +38,6 @@ void file_unlist(struct file *file)
   free(file);
 }
 
-/* write a dependency file as used by kbuild to track dependencies */
-int file_write_dep(const char *name)
-{
-	struct symbol *sym, *env_sym;
-	struct expr *e;
-	struct file *file;
-	FILE *out;
-
-	if (!name)
-		name = ".kconfig.d";
-	out = fopen("..config.tmp", "w");
-	if (!out)
-		return 1;
-	fprintf(out, "deps_config := \\\n");
-	for (file = file_list; file; file = file->next) {
-		if (file->next)
-			fprintf(out, "\t%s \\\n", file->name);
-		else
-			fprintf(out, "\t%s\n", file->name);
-	}
-	fprintf(out, "\n%s: \\\n"
-		     "\t$(deps_config)\n\n", conf_get_autoconfig_name());
-
-	expr_list_for_each_sym(sym_env_list, e, sym) {
-		struct property *prop;
-		const char *value;
-
-		prop = sym_get_env_prop(sym);
-		env_sym = prop_get_symbol(prop);
-		if (!env_sym)
-			continue;
-		value = getenv(env_sym->name);
-		if (!value)
-			value = "";
-		fprintf(out, "ifneq \"$(%s)\" \"%s\"\n", env_sym->name, value);
-		fprintf(out, "%s: FORCE\n", conf_get_autoconfig_name());
-		fprintf(out, "endif\n");
-	}
-
-	fprintf(out, "\n$(deps_config): ;\n");
-	fclose(out);
-	rename("..config.tmp", name);
-	return 0;
-}
-
-
 /* Allocate initial growable string */
 struct gstr str_new(void)
 {

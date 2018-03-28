@@ -114,7 +114,6 @@ void menu_set_type(int type);
 /* util.c */
 struct file *file_lookup(const char *name);
 void file_unlist(struct file* file);
-int file_write_dep(const char *name);
 void *xmalloc(size_t size);
 void *xcalloc(size_t nmemb, size_t size);
 void *xrealloc(void *p, size_t size);
