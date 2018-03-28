@@ -44,7 +44,7 @@ static const char *current_shaveapp = NULL;
 static char *shave_group_list = NULL;
 
 %}
-%expect 34
+%expect 36
 
 %union
 {
@@ -75,6 +75,7 @@ static char *shave_group_list = NULL;
 %token <id>T_TYPE
 %token <id>T_DEFAULT
 %token <id>T_SELECT
+%token <id>T_IMPLY
 %token <id>T_SHAVECORECOUNT
 %token <id>T_SHAVEGROUP
 %token <id>T_SHAVEAPP
@@ -86,6 +87,10 @@ static char *shave_group_list = NULL;
 %token <string> T_WORD
 %token <string> T_WORD_QUOTE
 %token T_UNEQUAL
+%token T_LESS
+%token T_LESS_EQUAL
+%token T_GREATER
+%token T_GREATER_EQUAL
 %token T_CLOSE_PAREN
 %token T_OPEN_PAREN
 %token T_EOL
@@ -93,9 +98,11 @@ static char *shave_group_list = NULL;
 %left T_OR
 %left T_AND
 %left T_EQUAL T_UNEQUAL
+%left T_LESS T_LESS_EQUAL T_GREATER T_GREATER_EQUAL
 %nonassoc T_NOT
 
 %type <string> prompt
+%type <symbol> nonconst_symbol
 %type <symbol> symbol
 %type <expr> expr
 %type <expr> if_expr
@@ -114,7 +121,7 @@ static char *shave_group_list = NULL;
 
 %{
 /* Include zconf.hash.c here so it can see the token constants. */
-#include "hconf.c"
+#include "kconf_id.c"
 %}
 
 %%
@@ -126,7 +133,27 @@ kcnf: input
 
 input: nl start | start;
 
-start: mainmenu_stmt stmt_list | stmt_list;
+start: mainmenu_stmt stmt_list | no_mainmenu_stmt stmt_list;
+
+/* mainmenu entry */
+
+mainmenu_stmt: T_MAINMENU prompt nl
+{
+	menu_add_prompt(P_MENU, $2, NULL);
+};
+
+/* Default main menu, if there's no mainmenu entry */
+
+no_mainmenu_stmt: /* empty */
+{
+	/*
+	 * Hack: Keep the main menu title on the heap so we can safely free it
+	 * later regardless of whether it comes from the 'prompt' in
+	 * mainmenu_stmt or here
+	 */
+	menu_add_prompt(P_MENU, xstrdup(ROOTMENU), NULL);
+};
+
 
 stmt_list:
 	  /* empty */
@@ -137,13 +164,13 @@ stmt_list:
 	| stmt_list T_WORD error T_EOL	{ zconf_error("unknown statement \"%s\"", $2); }
 	| stmt_list option_name error T_EOL
 {
-	zconf_error("unexpected option \"%s\"", kconf_id_strings + $2->name);
+	zconf_error("unexpected option \"%s\"", $2->name);
 }
 	| stmt_list error T_EOL		{ zconf_error("invalid statement"); }
 ;
 
 option_name:
-	T_DEPENDS | T_PROMPT | T_TYPE | T_SELECT | T_OPTIONAL | T_RANGE | T_DEFAULT | T_VISIBLE | T_SHAVECORECOUNT
+	T_DEPENDS | T_PROMPT | T_TYPE | T_SELECT | T_IMPLY | T_OPTIONAL | T_RANGE | T_DEFAULT | T_VISIBLE | T_SHAVECORECOUNT
 ;
 
 common_stmt:
@@ -164,26 +191,23 @@ option_error:
 
 /* config/menuconfig entry */
 
-config_entry_start: T_CONFIG T_WORD T_EOL
+config_entry_start: T_CONFIG nonconst_symbol T_EOL
 {
-	struct symbol *sym = sym_lookup($2, 0);
-	sym->flags |= SYMBOL_OPTIONAL;
-	menu_add_entry(sym);
-	printd(DEBUG_PARSE, "%s:%d:config %s\n", zconf_curname(), zconf_lineno(), $2);
+	$2->flags |= SYMBOL_OPTIONAL;
+	menu_add_entry($2);
+	printd(DEBUG_PARSE, "%s:%d:config %s\n", zconf_curname(), zconf_lineno(), $2->name);
 };
 
 config_stmt: config_entry_start config_option_list
 {
-	menu_end_entry();
 	printd(DEBUG_PARSE, "%s:%d:endconfig\n", zconf_curname(), zconf_lineno());
 };
 
-menuconfig_entry_start: T_MENUCONFIG T_WORD T_EOL
+menuconfig_entry_start: T_MENUCONFIG nonconst_symbol T_EOL
 {
-	struct symbol *sym = sym_lookup($2, 0);
-	sym->flags |= SYMBOL_OPTIONAL;
-	menu_add_entry(sym);
-	printd(DEBUG_PARSE, "%s:%d:menuconfig %s\n", zconf_curname(), zconf_lineno(), $2);
+	$2->flags |= SYMBOL_OPTIONAL;
+	menu_add_entry($2);
+	printd(DEBUG_PARSE, "%s:%d:menuconfig %s\n", zconf_curname(), zconf_lineno(), $2->name);
 };
 
 menuconfig_stmt: menuconfig_entry_start config_option_list
@@ -192,7 +216,6 @@ menuconfig_stmt: menuconfig_entry_start config_option_list
 		current_entry->prompt->type = P_MENU;
 	else
 		zconfprint("warning: menuconfig statement without prompt");
-	menu_end_entry();
 	printd(DEBUG_PARSE, "%s:%d:endconfig\n", zconf_curname(), zconf_lineno());
 };
 
@@ -230,10 +253,16 @@ config_option: T_DEFAULT expr if_expr T_EOL
 		$1->stype);
 };
 
-config_option: T_SELECT T_WORD if_expr T_EOL
+config_option: T_SELECT nonconst_symbol if_expr T_EOL
 {
-	menu_add_symbol(P_SELECT, sym_lookup($2, 0), $3);
+	menu_add_symbol(P_SELECT, $2, $3);
 	printd(DEBUG_PARSE, "%s:%d:select\n", zconf_curname(), zconf_lineno());
+};
+
+config_option: T_IMPLY nonconst_symbol if_expr T_EOL
+{
+	menu_add_symbol(P_IMPLY, $2, $3);
+	printd(DEBUG_PARSE, "%s:%d:imply\n", zconf_curname(), zconf_lineno());
 };
 
 config_option: T_RANGE symbol symbol if_expr T_EOL
@@ -253,8 +282,10 @@ symbol_option_list:
 	| symbol_option_list T_WORD symbol_option_arg
 {
 	const struct kconf_id *id = kconf_id_lookup($2, strlen($2));
-	if (id && id->flags & TF_OPTION)
+	if (id && id->flags & TF_OPTION) {
 		menu_add_option(id->token, $3);
+		free($3);
+	}
 	else
 		zconfprint("warning: ignoring unknown option %s", $2);
 	free($2);
@@ -273,6 +304,7 @@ choice: T_CHOICE word_opt T_EOL
 	sym->flags |= SYMBOL_AUTO;
 	menu_add_entry(sym);
 	menu_add_expr(P_CHOICE, NULL, NULL);
+	free($2);
 	printd(DEBUG_PARSE, "%s:%d:choice\n", zconf_curname(), zconf_lineno());
 };
 
@@ -324,10 +356,10 @@ choice_option: T_OPTIONAL T_EOL
 	printd(DEBUG_PARSE, "%s:%d:optional\n", zconf_curname(), zconf_lineno());
 };
 
-choice_option: T_DEFAULT T_WORD if_expr T_EOL
+choice_option: T_DEFAULT nonconst_symbol if_expr T_EOL
 {
 	if ($1->stype == S_UNKNOWN) {
-		menu_add_symbol(P_DEFAULT, sym_lookup($2, 0), $3);
+		menu_add_symbol(P_DEFAULT, $2, $3);
 		printd(DEBUG_PARSE, "%s:%d:default\n",
 			zconf_curname(), zconf_lineno());
 	} else
@@ -367,13 +399,6 @@ if_block:
 	| if_block choice_stmt
 ;
 
-/* mainmenu entry */
-
-mainmenu_stmt: T_MAINMENU prompt nl
-{
-	menu_add_prompt(P_MENU, $2, NULL);
-};
-
 /* menu entry */
 
 menu: T_MENU prompt T_EOL
@@ -410,6 +435,7 @@ source_stmt: T_SOURCE prompt T_EOL
 {
 	printd(DEBUG_PARSE, "%s:%d:source %s\n", zconf_curname(), zconf_lineno(), $2);
 	zconf_nextfile($2);
+	free($2);
 };
 
 /* comment entry */
@@ -487,6 +513,17 @@ help_start: T_HELP T_EOL
 
 help: help_start T_HELPTEXT
 {
+	if (current_entry->help) {
+		free(current_entry->help);
+		zconfprint("warning: '%s' defined with more than one help text -- only the last one will be used",
+			   current_entry->sym->name ?: "<choice>");
+	}
+
+	/* Is the help text empty or all whitespace? */
+	if ($2[strspn($2, " \f\n\r\t\v")] == '\0')
+		zconfprint("warning: '%s' defined with blank help text",
+			   current_entry->sym->name ?: "<choice>");
+
 	current_entry->help = $2;
 };
 
@@ -546,6 +583,10 @@ if_expr:  /* empty */			{ $$ = NULL; }
 ;
 
 expr:	  symbol				{ $$ = expr_alloc_symbol($1); }
+	| symbol T_LESS symbol			{ $$ = expr_alloc_comp(E_LTH, $1, $3); }
+	| symbol T_LESS_EQUAL symbol		{ $$ = expr_alloc_comp(E_LEQ, $1, $3); }
+	| symbol T_GREATER symbol		{ $$ = expr_alloc_comp(E_GTH, $1, $3); }
+	| symbol T_GREATER_EQUAL symbol		{ $$ = expr_alloc_comp(E_GEQ, $1, $3); }
 	| symbol T_EQUAL symbol			{ $$ = expr_alloc_comp(E_EQUAL, $1, $3); }
 	| symbol T_UNEQUAL symbol		{ $$ = expr_alloc_comp(E_UNEQUAL, $1, $3); }
 	| T_OPEN_PAREN expr T_CLOSE_PAREN	{ $$ = $2; }
@@ -554,7 +595,10 @@ expr:	  symbol				{ $$ = expr_alloc_symbol($1); }
 	| expr T_AND expr			{ $$ = expr_alloc_two(E_AND, $1, $3); }
 ;
 
-symbol:	  T_WORD	{ $$ = sym_lookup($1, 0); free($1); }
+/* For symbol definitions, selects, etc., where quotes are not accepted */
+nonconst_symbol: T_WORD { $$ = sym_lookup($1, 0); free($1); };
+
+symbol:	  nonconst_symbol
 	| T_WORD_QUOTE	{ $$ = sym_lookup($1, SYMBOL_CONST); free($1); }
 ;
 
@@ -874,6 +918,7 @@ void shavegroup_add_to_current_shaveapp(const char *groupid)
 
 void conf_parse(const char *name)
 {
+	const char *tmp;
 	struct symbol *sym;
 	int i;
 
@@ -881,7 +926,6 @@ void conf_parse(const char *name)
 
 	sym_init();
 	_menu_init();
-	rootmenu.prompt = menu_add_prompt(P_MENU, ROOTMENU, NULL);
 
 	if (getenv("ZCONF_DEBUG"))
 		zconfdebug = 1;
@@ -891,8 +935,10 @@ void conf_parse(const char *name)
 	if (!modules_sym)
 		modules_sym = sym_find( "n" );
 
+	tmp = rootmenu.prompt->text;
 	rootmenu.prompt->text = _(rootmenu.prompt->text);
 	rootmenu.prompt->text = sym_expand_string_value(rootmenu.prompt->text);
+	free((char*)tmp);
 
 	menu_finalize(&rootmenu);
 	for_all_symbols(i, sym) {
@@ -924,13 +970,13 @@ static bool zconf_endtoken(const struct kconf_id *id, int starttoken, int endtok
 {
 	if (id->token != endtoken) {
 		zconf_error("unexpected '%s' within %s block",
-			kconf_id_strings + id->name, zconf_tokenname(starttoken));
+			id->name, zconf_tokenname(starttoken));
 		zconfnerrs++;
 		return false;
 	}
 	if (current_menu->file != current_file) {
 		zconf_error("'%s' in different file than '%s'",
-			kconf_id_strings + id->name, zconf_tokenname(starttoken));
+			id->name, zconf_tokenname(starttoken));
 		fprintf(stderr, "%s:%d: location of the '%s'\n",
 			current_menu->file->name, current_menu->lineno,
 			zconf_tokenname(starttoken));
@@ -996,7 +1042,7 @@ static void print_symbol(FILE *out, struct menu *menu)
 		fprintf(out, "\nconfig %s\n", sym->name);
 	switch (sym->type) {
 	case S_BOOLEAN:
-		fputs("  boolean\n", out);
+		fputs("  bool\n", out);
 		break;
 	case S_TRISTATE:
 		fputs("  tristate\n", out);
@@ -1044,6 +1090,11 @@ static void print_symbol(FILE *out, struct menu *menu)
 			break;
 		case P_SELECT:
 			fputs( "  select ", out);
+			expr_fprint(prop->expr, out);
+			fputc('\n', out);
+			break;
+		case P_IMPLY:
+			fputs( "  imply ", out);
 			expr_fprint(prop->expr, out);
 			fputc('\n', out);
 			break;

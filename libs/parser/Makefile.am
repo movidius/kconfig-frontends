@@ -1,9 +1,7 @@
-SUFFIXES = .gperf
-
 lib_LTLIBRARIES = libkconfig-parser.la
 libkconfig_parser_la_SOURCES = yconf.y
 dist_EXTRA_libkconfig_parser_la_SOURCES = \
-    hconf.gperf lconf.l                   \
+    lconf.l                   \
     confdata.c menu.c symbol.c util.c     \
     expr.c expr.h lkc.h lkc_proto.h
 libkconfig_parser_la_CPPFLAGS = -DROOTMENU="\"$(root_menu)\""   \
@@ -16,16 +14,13 @@ libkconfig_parser_la_LIBADD = $(intl_LIBS)
 kconfig_includedir = $(includedir)/kconfig
 kconfig_include_HEADERS = list.h lkc.h expr.h lkc_proto.h
 
-BUILT_SOURCES = hconf.c lconf.c
-CLEANFILES = hconf.c lconf.c yconf.c
+BUILT_SOURCES = lconf.c
+CLEANFILES = lconf.c yconf.c
 EXTRA_DIST = yconf.y.patch
 
 AM_V_GPERF = $(AM_V_GPERF_$(V))
 AM_V_GPERF_ = $(AM_V_GPERF_$(AM_DEFAULT_VERBOSITY))
 AM_V_GPERF_0 = @echo "  GPERF " $@;
-
-.gperf.c:
-	$(AM_V_GPERF)$(GPERF) -t --output-file $@ -a -C -E -g -k 1,3,$$ -p -t $<
 
 # The following rule produces a warning:
 #   libs/parser/Makefile.am:41: user target `.l.c' defined here...

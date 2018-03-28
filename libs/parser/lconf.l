@@ -54,7 +54,7 @@ static void append_string(const char *str, int size)
 	if (new_size > text_asize) {
 		new_size += START_STRSIZE - 1;
 		new_size &= -START_STRSIZE;
-		text = realloc(text, new_size);
+		text = xrealloc(text, new_size);
 		text_asize = new_size;
 	}
 	memcpy(text + text_size, str, size);
@@ -67,6 +67,13 @@ static void alloc_string(const char *str, int size)
 	text = xmalloc(size + 1);
 	memcpy(text, str, size);
 	text[size] = 0;
+}
+
+static void warn_ignored_character(char chr)
+{
+	fprintf(stderr,
+	        "%s:%d:warning: ignoring unsupported character '%c'\n",
+	        zconf_curname(), zconf_lineno(), chr);
 }
 %}
 
@@ -109,7 +116,7 @@ n	[A-Za-z0-9_]
 		zconflval.string = text;
 		return T_WORD;
 	}
-	.
+	.	warn_ignored_character(*yytext);
 	\n	{
 		BEGIN(INITIAL);
 		current_file->lineno++;
@@ -125,6 +132,10 @@ n	[A-Za-z0-9_]
 	"!"	return T_NOT;
 	"="	return T_EQUAL;
 	"!="	return T_UNEQUAL;
+	"<="	return T_LESS_EQUAL;
+	">="	return T_GREATER_EQUAL;
+	"<"	return T_LESS;
+	">"	return T_GREATER;
 	\"|\'	{
 		str = yytext[0];
 		new_string();
@@ -144,7 +155,8 @@ n	[A-Za-z0-9_]
 	}
 	#.*	/* comment */
 	\\\n	current_file->lineno++;
-	.
+	[[:blank:]]+
+	.	warn_ignored_character(*yytext);
 	<<EOF>> {
 		BEGIN(INITIAL);
 	}
@@ -176,7 +188,9 @@ n	[A-Za-z0-9_]
 			append_string(yytext, 1);
 	}
 	\n	{
-		printf("%s:%d:warning: multi-line strings not supported\n", zconf_curname(), zconf_lineno());
+		fprintf(stderr,
+			"%s:%d:warning: multi-line strings not supported\n",
+			zconf_curname(), zconf_lineno());
 		current_file->lineno++;
 		BEGIN(INITIAL);
 		return T_EOL;
@@ -338,7 +352,7 @@ void zconf_initscan(const char *name)
 {
 	yyin = zconf_fopen(name);
 	if (!yyin) {
-		printf("can't find file %s\n", name);
+		fprintf(stderr, "can't find file %s\n", name);
 		exit(1);
 	}
 

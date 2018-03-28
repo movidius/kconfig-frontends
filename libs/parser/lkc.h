@@ -21,9 +21,7 @@ static inline char *bind_textdomain_codeset(const char *dn, char *c) { return c;
 extern "C" {
 #endif
 
-#define P(name,type,arg)	extern type name arg
 #include "lkc_proto.h"
-#undef P
 
 #define SRCTREE "srctree"
 
@@ -61,17 +59,15 @@ enum conf_def_mode {
 #define T_OPT_MODULES		1
 #define T_OPT_DEFCONFIG_LIST	2
 #define T_OPT_ENV		3
+#define T_OPT_ALLNOCONFIG_Y	4
 
 struct kconf_id {
-	int name;
+	const char *name;
 	int token;
 	unsigned int flags;
 	enum symbol_type stype;
 };
 
-extern int zconfdebug;
-
-int zconfparse(void);
 void zconfdump(FILE *out);
 void zconf_starthelp(void);
 FILE *zconf_fopen(const char *name);
@@ -88,11 +84,6 @@ void sym_set_change_count(int count);
 void sym_add_change_count(int count);
 bool conf_set_all_new_symbols(enum conf_def_mode mode);
 void set_all_choice_values(struct symbol *csym);
-
-struct conf_printer {
-	void (*print_symbol)(FILE *, struct symbol *, const char *, void *);
-	void (*print_comment)(FILE *, const char *, void *);
-};
 
 /* confdata.c and expr.c */
 static inline void xfwrite(const void *str, size_t len, size_t count, FILE *out)
@@ -126,6 +117,8 @@ void file_unlist(struct file* file);
 int file_write_dep(const char *name);
 void *xmalloc(size_t size);
 void *xcalloc(size_t nmemb, size_t size);
+void *xrealloc(void *p, size_t size);
+char *xstrdup(const char *s);
 
 struct gstr {
 	size_t len;
@@ -137,7 +130,6 @@ struct gstr {
 	int max_width;
 };
 struct gstr str_new(void);
-struct gstr str_assign(const char *s);
 void str_free(struct gstr *gs);
 void str_append(struct gstr *gs, const char *s);
 void str_printf(struct gstr *gs, const char *fmt, ...);
@@ -148,8 +140,6 @@ extern struct expr *sym_env_list;
 
 void sym_init(void);
 void sym_clear_all_valid(void);
-void sym_set_all_changed(void);
-void sym_set_changed(struct symbol *sym);
 struct symbol *sym_choice_default(struct symbol *sym);
 const char *sym_get_string_default(struct symbol *sym);
 struct symbol *sym_check_deps(struct symbol *sym);

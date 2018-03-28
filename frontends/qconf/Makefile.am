@@ -13,7 +13,7 @@ qconf_LDADD = $(top_builddir)/libs/parser/libkconfig-parser.la  \
               $(top_builddir)/libs/images/libkconfig-images.a   \
               $(intl_LIBS) $(qt4_LIBS) $(qconf_EXTRA_LIBS)
 CLEANFILES = qconf.moc
-EXTRA_DIST = qconf.cc.patch
+#EXTRA_DIST = qconf.cc.patch
 
 AM_V_MOC = $(AM_V_MOC_$(V))
 AM_V_MOC_ = $(AM_V_MOC_$(AM_DEFAULT_VERBOSITY))
