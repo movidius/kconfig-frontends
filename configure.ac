@@ -210,12 +210,6 @@ AM_PROG_CC_C_O
 AC_PROG_CXX
 AC_C_INLINE
 AC_PROG_MAKE_SET
-AC_CHECK_PROGS(
-    [GPERF],
-    [gperf])
-AS_IF(
-    [test -z "$GPERF"],
-    [AC_MSG_ERROR([can not find gperf])])
 AS_IF(
     [test "$need_pkgconfig" = "yes"],
     [PKG_PROG_PKG_CONFIG()])
