@@ -36,7 +36,8 @@ static struct kconf_id kconf_id_array[] = {
 	{ "allnoconfig_y",	T_OPT_ALLNOCONFIG_Y,	TF_OPTION },
   { "shaveapp", T_SHAVEAPP, TF_COMMAND },
   { "shavegroup", T_SHAVEGROUP, TF_COMMAND },
-  { "shavecorecount", T_SHAVECORECOUNT, TF_COMMAND }
+  { "shavecorecount", T_SHAVECORECOUNT, TF_COMMAND },
+  { "entrypoints", T_ENTRYPOINTS, TF_COMMAND }
 };
 
 #define KCONF_ID_ARRAY_SIZE (sizeof(kconf_id_array)/sizeof(struct kconf_id))
