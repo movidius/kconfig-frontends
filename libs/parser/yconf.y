@@ -909,7 +909,7 @@ void shavegroup_add_to_current_shaveapp(const char *groupid)
   size_t groupid_len = strlen(groupid);
   char fake_groupid[groupid_len+2];
   memset(fake_groupid, 0, groupid_len+2);
-  strncpy(fake_groupid, groupid, groupid_len);
+  strncpy(fake_groupid, groupid, groupid_len+1);
   fake_groupid[groupid_len] = ' ';
 
   shaveapp_create_config(CONFIG_FORMAT, PROMPT_FORMAT, current_shaveapp,

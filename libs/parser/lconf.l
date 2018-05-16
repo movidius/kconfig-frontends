@@ -283,7 +283,7 @@ static void zconf_endhelp(void)
  */
 FILE *zconf_fopen(const char *name)
 {
-	char *env, fullname[PATH_MAX+1], parentpath[PATH_MAX+1], temppath[PATH_MAX+1], *pp;
+	char *env, fullname[PATH_MAX*2+1], parentpath[PATH_MAX+1], temppath[PATH_MAX+1], *pp;
 	FILE *f;
   size_t bytesleft;
   struct file *parent;
