@@ -17,17 +17,6 @@ define the following steps:
 - define SHAVE groups
 - define SHAVE applications
 
-Defining the number of SHAVE cores
-==================================
-
-Your configuration files need to contain an `int` configuration option holding
-the number of cores. Then you need to mark that configuration option with the
-special attribute `shavecorecount` and that's it.
-
-If you're using the Movidius MDK, the you already have this entry defined.
-
-NOTE: this feature is not yet finished. The kconfig system currently assumes you're using SoCs with 12 SHAVE cores.
-
 Defining the SHAVE groups
 =========================
 

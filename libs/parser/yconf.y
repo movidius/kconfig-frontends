@@ -44,7 +44,7 @@ static const char *current_shaveapp = NULL;
 static char *shave_group_list = NULL;
 
 %}
-%expect 36
+%expect 34
 
 %union
 {
@@ -76,7 +76,6 @@ static char *shave_group_list = NULL;
 %token <id>T_DEFAULT
 %token <id>T_SELECT
 %token <id>T_IMPLY
-%token <id>T_SHAVECORECOUNT
 %token <id>T_SHAVEGROUP
 %token <id>T_SHAVEAPP
 %token <id>T_ENTRYPOINTS
@@ -170,7 +169,7 @@ stmt_list:
 ;
 
 option_name:
-	T_DEPENDS | T_PROMPT | T_TYPE | T_SELECT | T_IMPLY | T_OPTIONAL | T_RANGE | T_DEFAULT | T_VISIBLE | T_SHAVECORECOUNT
+	T_DEPENDS | T_PROMPT | T_TYPE | T_SELECT | T_IMPLY | T_OPTIONAL | T_RANGE | T_DEFAULT | T_VISIBLE
 ;
 
 common_stmt:
@@ -270,9 +269,6 @@ config_option: T_RANGE symbol symbol if_expr T_EOL
 	menu_add_expr(P_RANGE, expr_alloc_comp(E_RANGE,$2, $3), $4);
 	printd(DEBUG_PARSE, "%s:%d:range\n", zconf_curname(), zconf_lineno());
 };
-
-config_option: T_SHAVECORECOUNT T_EOL
-{};
 
 symbol_option: T_OPTION symbol_option_list T_EOL
 ;

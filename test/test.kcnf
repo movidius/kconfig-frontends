@@ -20,7 +20,6 @@ shaveapp PP_GAUSS
     kconfig system will automatically generate entries for it. It'll also
     generate a sub-menu for the SHAVE placement where you'll be presented with
     a series of check-boxes corresponding to the selected platform SHAVE
-    core-count. kconfig knows that value from the config entry marked with the
-    attribute `shavecorecount`
+    core-count. TODO: add a shavecorecount attribute to shaveapp entry
 
 endmenu
