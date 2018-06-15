@@ -835,13 +835,13 @@ void shaveapp_generate_type_choice(const char *shaveapp_id)
   }
 
   {
-    const char *PROMPT_FORMAT = "Make %s shaveapp be static";
-    shaveapp_create_config(SYMBOL_FORMAT_SHAVEAPP_TYPE_STATIC, PROMPT_FORMAT, shaveapp_id, S_BOOLEAN, NULL);
-  }
-  {
     const char *SYMBOL_FORMAT = "SHAVEAPP_%s_TYPE_DYNAMIC";
     const char *PROMPT_FORMAT = "Make %s shaveapp be dynamic";
     shaveapp_create_config(SYMBOL_FORMAT, PROMPT_FORMAT, shaveapp_id, S_BOOLEAN, NULL);
+  }
+  {
+    const char *PROMPT_FORMAT = "Make %s shaveapp be static";
+    shaveapp_create_config(SYMBOL_FORMAT_SHAVEAPP_TYPE_STATIC, PROMPT_FORMAT, shaveapp_id, S_BOOLEAN, NULL);
   }
 
   // close the choice we started above
