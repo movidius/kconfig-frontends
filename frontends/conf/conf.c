@@ -43,6 +43,7 @@ static int sync_kconfig;
 static int conf_cnt;
 static char line[PATH_MAX];
 static struct menu *rootEntry;
+int release_mode = 0;
 
 static void print_help(struct menu *menu)
 {
@@ -462,7 +463,7 @@ static struct option long_opts[] = {
 static void conf_usage(const char *progname)
 {
 
-	printf("Usage: %s [-s] [option] <kconfig-file>\n", progname);
+	printf("Usage: %s [-rs] [ [option] <kconfig-file>\n", progname);
 	printf("[option] is _one_ of the following:\n");
 	printf("  --listnewconfig         List new options\n");
 	printf("  --oldaskconfig          Start a new configuration using a line-oriented program\n");
@@ -493,11 +494,14 @@ int main(int ac, char **av)
 
 	tty_stdio = isatty(0) && isatty(1);
 
-	while ((opt = getopt_long(ac, av, "s", long_opts, NULL)) != -1) {
+	while ((opt = getopt_long(ac, av, "rs", long_opts, NULL)) != -1) {
 		if (opt == 's') {
 			conf_set_message_callback(NULL);
 			continue;
 		}
+    if (opt == 'r') {
+      release_mode = 1;
+    }
 		input_mode = (enum input_mode)opt;
 		switch (opt) {
 		case silentoldconfig:

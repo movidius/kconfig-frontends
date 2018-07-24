@@ -27,6 +27,7 @@ static struct {
 
 static char *text;
 static int text_size, text_asize;
+int release_mode = 0;
 
 struct buffer {
         struct buffer *parent;
@@ -369,8 +370,10 @@ void zconf_nextfile(const char *name)
 
 	FILE *next_file = zconf_fopen(file->name);
 	if (!next_file) {
-		printf("%s:%d: can't open file \"%s\"\n",
-		    zconf_curname(), zconf_lineno(), file->name);
+    if (!release_mode) {
+      printf("%s:%d: can't open file \"%s\"\n",
+          zconf_curname(), zconf_lineno(), file->name);
+    }
     file_unlist(file);
 	} else {
     struct buffer *buf = xmalloc(sizeof(*buf));
