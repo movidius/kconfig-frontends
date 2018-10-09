@@ -1444,8 +1444,10 @@ void fixup_rootmenu(struct menu *menu)
 int main(int ac, char *av[])
 {
 	const char *name;
+#if 0
 	char *env;
-	gchar *glade_file;
+#endif
+	gchar *glade_file = GUI_PATH;
 
 	bindtextdomain(PACKAGE, LOCALEDIR);
 	bind_textdomain_codeset(PACKAGE, "UTF-8");
@@ -1459,6 +1461,7 @@ int main(int ac, char *av[])
 	//add_pixmap_directory (PACKAGE_DATA_DIR "/" PACKAGE "/pixmaps");
 	//add_pixmap_directory (PACKAGE_SOURCE_DIR "/pixmaps");
 
+#if 0
 	/* Determine GUI path */
 	env = getenv(SRCTREE);
 	if (env)
@@ -1467,6 +1470,7 @@ int main(int ac, char *av[])
 		glade_file = g_strconcat(av[0], ".glade", NULL);
 	else
 		glade_file = g_strconcat(g_get_current_dir(), "/", av[0], ".glade", NULL);
+#endif
 
 	/* Conf stuffs */
 	if (ac > 1 && av[1][0] == '-') {
