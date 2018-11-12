@@ -815,7 +815,9 @@ void shaveapp_add_entrypoints(const char *entrypoints)
       current_shaveapp, S_STRING, entrypoints);
 }
 
-const char *SYMBOL_FORMAT_SHAVEAPP_TYPE_STATIC = "SHAVEAPP_%s_TYPE_STATIC";
+const char *SYMBOL_FORMAT_SHAVEAPP_TYPE_MISA = "SHAVEAPP_%s_TYPE_MISA";
+const char *SYMBOL_FORMAT_SHAVEAPP_TYPE_RISA    = "SHAVEAPP_%s_TYPE_RISA";
+const char *SYMBOL_FORMAT_SHAVEAPP_TYPE_STATIC  = "SHAVEAPP_%s_TYPE_STATIC";
 
 void shaveapp_generate_type_choice(const char *shaveapp_id)
 {
@@ -835,9 +837,12 @@ void shaveapp_generate_type_choice(const char *shaveapp_id)
   }
 
   {
-    const char *SYMBOL_FORMAT = "SHAVEAPP_%s_TYPE_DYNAMIC";
-    const char *PROMPT_FORMAT = "Make %s shaveapp be dynamic";
-    shaveapp_create_config(SYMBOL_FORMAT, PROMPT_FORMAT, shaveapp_id, S_BOOLEAN, NULL);
+    const char *PROMPT_FORMAT = "Make %s shaveapp be MISA";
+    shaveapp_create_config(SYMBOL_FORMAT_SHAVEAPP_TYPE_MISA, PROMPT_FORMAT, shaveapp_id, S_BOOLEAN, NULL);
+  }
+  {
+    const char *PROMPT_FORMAT = "Make %s shaveapp be RISA";
+    shaveapp_create_config(SYMBOL_FORMAT_SHAVEAPP_TYPE_RISA, PROMPT_FORMAT, shaveapp_id, S_BOOLEAN, NULL);
   }
   {
     const char *PROMPT_FORMAT = "Make %s shaveapp be static";
