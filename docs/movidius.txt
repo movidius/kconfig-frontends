@@ -47,7 +47,7 @@ Defining a SHAVE application
 A SHAVE application is a special library meant to be embedded into an ELF
 image. That library hold together a set of routines meant to perform a
 specific task. A SHAVE application can be dynamically loaded or can be
-statically loaded upon the ELF loading. Either way, you declare the SHAVED
+statically loaded upon the ELF loading. Either way, you declare the SHAVE
 application using the special configuration keyword `shaveapp` like this:
 
   shaveapp <APP_ID>
@@ -83,7 +83,7 @@ This is a verbatim copy of the attribute `entrypoints` applied to the `shaveapp`
 
 SHAVEAPP_<ID>_TYPE
 choice
-This allows you to choose if your application is static or if it uses dynamic loading
+This allows you to choose between MISA, RISA or static
 
 SHAVEAPP_<ID>_TYPE_STATIC
 boolean
@@ -91,11 +91,11 @@ This corresponds to the static SHAVE application choice
 
 SHAVEAPP_<ID>_TYPE_DYNAMIC
 boolean
-This corresponds to the dynamic SHAVE application choice
+This corresponds to the SHAVE application choice
 
 SHAVEAPP_<ID>_PLACEMENT
 menu
-This is a menu containing a set of other configuration options allowing you to specify on what SHAVEs to place this *static* application. This menu do not appear for dynamically loaded applications.
+This is a menu containing a set of other configuration options allowing you to specify on what SHAVEs to place this *static* application. This menu do not appear for MISA or RISA applications.
 
 SHAVEAPP_<ID>_PLACE_CORE_[0..N]
 boolean

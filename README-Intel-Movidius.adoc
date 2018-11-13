@@ -48,11 +48,11 @@ For instance, an entry for the BoxFilterAsm SHAVE Dynamic Loaded module would
 be:
 
   shaveapp BoxFilterAsm
-    prompt "BoxFilterAsm SHAVE dynamic application"
+    prompt "BoxFilterAsm SHAVE application"
     shavegroup SHAVE_GROUP_DEFAULT
     entrypoints "Entry"
     help
-      This is the help for the BoxFilterAsm SHAVE dynamic application
+      This is the help for the BoxFilterAsm SHAVE application
 
 Upon invoking the configuration tool, `kconfig-fronteds` will generate these
 visual items:
@@ -71,7 +71,7 @@ This will generate the following entries into the `.config` file:
 
 
   #
-  # BoxFilterAsm SHAVE dynamic application
+  # BoxFilterAsm SHAVE application
   #
   CONFIG_SHAVEAPP_BoxFilterAsm_GROUP="SHAVE_GROUP_DEFAULT "
   CONFIG_SHAVEAPP_BoxFilterAsm_ENTRY_POINTS="Entry"
