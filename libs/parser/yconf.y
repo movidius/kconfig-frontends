@@ -758,7 +758,8 @@ char *shaveapp_alloc_format_string(const char *format,
 
 void shaveapp_create_config_symbol(struct symbol *sym,
     const char *prompt_format, const char *shaveapp_id,
-    enum symbol_type type, const char *default_val)
+    enum symbol_type type, const char *default_val, 
+    struct symbol *select_symbol)
 {
   char *prompt = shaveapp_alloc_format_string(prompt_format, shaveapp_id);
 
@@ -767,19 +768,24 @@ void shaveapp_create_config_symbol(struct symbol *sym,
   if (default_val) {
     menu_add_expr(P_DEFAULT, expr_alloc_symbol(sym_lookup(default_val,0)), NULL);
   }
+  if (select_symbol) {
+    menu_add_symbol(T_SELECT, select_symbol, NULL);
+  }
   menu_end_entry();
 }
 
 void shaveapp_create_config(const char *sym_format,
     const char *prompt_format, const char *shaveapp_id,
-    enum symbol_type type, const char *default_val)
+    enum symbol_type type, const char *default_val,
+    struct symbol *select_symbol)
 {
   char *sym_name = shaveapp_alloc_format_string(sym_format, shaveapp_id);
   struct symbol *sym = sym_lookup(sym_name, 0);
   sym->flags |= SYMBOL_OPTIONAL;
   sym->type = type;
 
-  shaveapp_create_config_symbol(sym, prompt_format, shaveapp_id, type, default_val);
+  shaveapp_create_config_symbol(sym, prompt_format, shaveapp_id, type,
+    default_val, select_symbol);
 }
 
 void shaveapp_generate_use(const char *shaveapp_id)
@@ -787,8 +793,15 @@ void shaveapp_generate_use(const char *shaveapp_id)
   // create the USE_SHAVEAPP_<id> entry with the prompt and the default value
   const char *SYMBOL_FORMAT = "USE_SHAVEAPP_%s";
   const char *PROMPT_FORMAT = "Use SHAVE application %s";
+  struct symbol *select_has_shaveapps = sym_lookup("CONFIG_HAS_SHAVEAPPS", 0);
+  if (NULL == select_has_shaveapps) {
+    zconf_error("symbol not found: CONFIG_HAS_SHAVEAPPS");
+    zconfnerrs++;
+    fprintf(stderr, "%s:%d: symbol not found: CONFIG_HAS_SHAVEAPPS. The master kcnf file is invalid.", 
+      current_menu->file->name, current_menu->lineno);
+  }
   shaveapp_create_config(SYMBOL_FORMAT, PROMPT_FORMAT, shaveapp_id,
-      S_BOOLEAN, "y");
+      S_BOOLEAN, "y", select_has_shaveapps);
 
   shaveapp_generate_srcs_dir(shaveapp_id);
 }
@@ -798,7 +811,7 @@ void shaveapp_generate_srcs_dir(const char *shaveapp_id)
   const char *SYMBOL_FORMAT = "SHAVEAPP_%s_SRCS_DIR";
   const char *PROMPT_FORMAT = "SHAVE application's %s sources directory";
   shaveapp_create_config(SYMBOL_FORMAT, PROMPT_FORMAT, shaveapp_id,
-      S_STRING, "");
+      S_STRING, "", NULL);
 }
 
 void shaveapp_add_entrypoints(const char *entrypoints)
@@ -812,7 +825,7 @@ void shaveapp_add_entrypoints(const char *entrypoints)
   const char *SYMBOL_FORMAT = "SHAVEAPP_%s_ENTRY_POINTS";
   const char *PROMPT_FORMAT = "%s shaveapp entry points list";
   shaveapp_create_config(SYMBOL_FORMAT, PROMPT_FORMAT,
-      current_shaveapp, S_STRING, entrypoints);
+      current_shaveapp, S_STRING, entrypoints, NULL);
 }
 
 const char *SYMBOL_FORMAT_SHAVEAPP_TYPE_MISA = "SHAVEAPP_%s_TYPE_MISA";
@@ -838,15 +851,18 @@ void shaveapp_generate_type_choice(const char *shaveapp_id)
 
   {
     const char *PROMPT_FORMAT = "Make %s shaveapp be MISA";
-    shaveapp_create_config(SYMBOL_FORMAT_SHAVEAPP_TYPE_MISA, PROMPT_FORMAT, shaveapp_id, S_BOOLEAN, NULL);
+    shaveapp_create_config(SYMBOL_FORMAT_SHAVEAPP_TYPE_MISA, PROMPT_FORMAT,
+      shaveapp_id, S_BOOLEAN, NULL, NULL);
   }
   {
     const char *PROMPT_FORMAT = "Make %s shaveapp be RISA";
-    shaveapp_create_config(SYMBOL_FORMAT_SHAVEAPP_TYPE_RISA, PROMPT_FORMAT, shaveapp_id, S_BOOLEAN, NULL);
+    shaveapp_create_config(SYMBOL_FORMAT_SHAVEAPP_TYPE_RISA, PROMPT_FORMAT,
+      shaveapp_id, S_BOOLEAN, NULL, NULL);
   }
   {
     const char *PROMPT_FORMAT = "Make %s shaveapp be static";
-    shaveapp_create_config(SYMBOL_FORMAT_SHAVEAPP_TYPE_STATIC, PROMPT_FORMAT, shaveapp_id, S_BOOLEAN, NULL);
+    shaveapp_create_config(SYMBOL_FORMAT_SHAVEAPP_TYPE_STATIC, PROMPT_FORMAT,
+      shaveapp_id, S_BOOLEAN, NULL, NULL);
   }
 
   // close the choice we started above
@@ -914,7 +930,7 @@ void shavegroup_add_to_current_shaveapp(const char *groupid)
   fake_groupid[groupid_len] = ' ';
 
   shaveapp_create_config(CONFIG_FORMAT, PROMPT_FORMAT, current_shaveapp,
-      S_STRING, fake_groupid);
+      S_STRING, fake_groupid, NULL);
 }
 
 void conf_parse(const char *name)
