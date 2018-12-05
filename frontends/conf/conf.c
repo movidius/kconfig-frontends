@@ -43,7 +43,7 @@ static int sync_kconfig;
 static int conf_cnt;
 static char line[PATH_MAX];
 static struct menu *rootEntry;
-int release_mode = 0;
+extern int release_mode;
 
 static void print_help(struct menu *menu)
 {
