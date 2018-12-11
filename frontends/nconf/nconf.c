@@ -10,6 +10,7 @@
 #endif
 #include <string.h>
 #include <stdlib.h>
+#include <getopt.h>
 
 #include "lkc.h"
 #include "nconf.h"
@@ -275,6 +276,7 @@ static const char *current_instructions = menu_instructions;
 
 static char *dialog_input_result;
 static int dialog_input_result_len;
+extern int release_mode;
 
 static void conf(struct menu *menu);
 static void conf_choice(struct menu *menu);
@@ -1479,17 +1481,29 @@ int main(int ac, char **av)
 {
 	int lines, columns;
 	char *mode;
+	int opt;
+  const char *name;
 
 	setlocale(LC_ALL, "");
 	bindtextdomain(PACKAGE, LOCALEDIR);
 	textdomain(PACKAGE);
 
-	if (ac > 1 && strcmp(av[1], "-s") == 0) {
-		/* Silence conf_read() until the real callback is set up */
-		conf_set_message_callback(NULL);
-		av++;
+	while ((opt = getopt_long(ac, av, "rs", NULL, NULL)) != -1) {
+		if (opt == 's') {
+			conf_set_message_callback(NULL);
+			continue;
+		}
+    if (opt == 'r') {
+      release_mode = 1;
+    }
+
+  }
+	if (ac == optind) {
+		fprintf(stderr, _("%s: Kconfig file missing\n"), av[0]);
+		exit(1);
 	}
-	conf_parse(av[1]);
+	name = av[optind];
+  conf_parse(name);
 	conf_read(NULL);
 
 	mode = getenv("NCONFIG_MODE");

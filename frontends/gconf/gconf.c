@@ -11,6 +11,7 @@
 #endif
 
 #include <stdlib.h>
+#include <getopt.h>
 #include "lkc.h"
 #include "images.c"
 
@@ -40,6 +41,7 @@ static gboolean show_range = TRUE;
 static gboolean show_value = TRUE;
 static gboolean resizeable = FALSE;
 static int opt_mode = OPT_NORMAL;
+extern int release_mode;
 
 GtkWidget *main_wnd = NULL;
 GtkWidget *tree1_w = NULL;	// left  frame
@@ -1444,6 +1446,7 @@ void fixup_rootmenu(struct menu *menu)
 int main(int ac, char *av[])
 {
 	const char *name;
+	int opt;
 #if 0
 	char *env;
 #endif
@@ -1473,23 +1476,21 @@ int main(int ac, char *av[])
 #endif
 
 	/* Conf stuffs */
-	if (ac > 1 && av[1][0] == '-') {
-		switch (av[1][1]) {
-		case 'a':
-			//showAll = 1;
-			break;
-		case 's':
+	while ((opt = getopt_long(ac, av, "rs", NULL, NULL)) != -1) {
+		if (opt == 's') {
 			conf_set_message_callback(NULL);
-			break;
-		case 'h':
-		case '?':
-			printf("%s [-s] <config>\n", av[0]);
-			exit(0);
+			continue;
 		}
-		name = av[2];
-	} else
-		name = av[1];
+    if (opt == 'r') {
+      release_mode = 1;
+    }
 
+  }
+	if (ac == optind) {
+		fprintf(stderr, _("%s: Kconfig file missing\n"), av[0]);
+		exit(1);
+	}
+	name = av[optind];
 	conf_parse(name);
 	fixup_rootmenu(&rootmenu);
 	conf_read(NULL);

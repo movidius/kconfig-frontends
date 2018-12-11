@@ -27,6 +27,7 @@
 #include <qevent.h>
 
 #include <stdlib.h>
+#include <getopt.h>
 
 #include "lkc.h"
 #include "qconf.h"
@@ -41,6 +42,7 @@
 
 static QApplication *configApp;
 static ConfigSettings *configSettings;
+extern int release_mode;
 
 QAction *ConfigMainWindow::saveAction;
 
@@ -1832,26 +1834,28 @@ int main(int ac, char** av)
 {
 	ConfigMainWindow* v;
 	const char *name;
+	int opt;
 
 	bindtextdomain(PACKAGE, LOCALEDIR);
 	textdomain(PACKAGE);
 
-	progname = av[0];
 	configApp = new QApplication(ac, av);
-	if (ac > 1 && av[1][0] == '-') {
-		switch (av[1][1]) {
-		case 's':
+	while ((opt = getopt_long(ac, av, "rs", NULL, NULL)) != -1) {
+		if (opt == 's') {
 			conf_set_message_callback(NULL);
-			break;
-		case 'h':
-		case '?':
-			usage();
+			continue;
 		}
-		name = av[2];
-	} else
-		name = av[1];
-	if (!name)
-		usage();
+    if (opt == 'r') {
+      release_mode = 1;
+    }
+
+  }
+	if (ac == optind) {
+		fprintf(stderr, _("%s: Kconfig file missing\n"), av[0]);
+    usage();
+		exit(1);
+	}
+	name = av[optind];
 
 	conf_parse(name);
 	fixup_rootmenu(&rootmenu);

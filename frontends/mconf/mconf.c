@@ -280,6 +280,7 @@ static int single_menu_mode;
 static int show_all_options;
 static int save_and_exit;
 static int silent;
+extern int release_mode;
 
 static void conf(struct menu *menu, struct menu *active_menu);
 static void conf_choice(struct menu *menu);
@@ -1015,12 +1016,17 @@ int main(int ac, char **av)
 
 	signal(SIGINT, sig_handler);
 
-	if (ac > 1 && strcmp(av[1], "-s") == 0) {
-		silent = 1;
-		/* Silence conf_read() until the real callback is set up */
-		conf_set_message_callback(NULL);
-		av++;
-	}
+	if (ac > 1) {
+    if (strcmp(av[1], "-s") == 0) {
+      silent = 1;
+      /* Silence conf_read() until the real callback is set up */
+      conf_set_message_callback(NULL);
+      av++;
+    }
+    if (strcmp(av[1], "-r") == 0) {
+      release_mode = 1;
+    }
+  }
 	conf_parse(av[1]);
 	conf_read(NULL);
 
