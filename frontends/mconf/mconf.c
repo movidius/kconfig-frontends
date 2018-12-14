@@ -18,6 +18,7 @@
 #include <signal.h>
 #include <unistd.h>
 #include <locale.h>
+#include <getopt.h>
 
 #include "lkc.h"
 #include "lxdialog/dialog.h"
@@ -1007,8 +1008,8 @@ static void sig_handler(int signo)
 
 int main(int ac, char **av)
 {
-	char *mode;
-	int res;
+	char *mode, *name;
+	int res, opt;
 
 	setlocale(LC_ALL, "");
 	bindtextdomain(PACKAGE, LOCALEDIR);
@@ -1016,18 +1017,22 @@ int main(int ac, char **av)
 
 	signal(SIGINT, sig_handler);
 
-	if (ac > 1) {
-    if (strcmp(av[1], "-s") == 0) {
-      silent = 1;
-      /* Silence conf_read() until the real callback is set up */
-      conf_set_message_callback(NULL);
-      av++;
-    }
-    if (strcmp(av[1], "-r") == 0) {
+	while ((opt = getopt_long(ac, av, "rs", NULL, NULL)) != -1) {
+		if (opt == 's') {
+			conf_set_message_callback(NULL);
+			continue;
+		}
+    if (opt == 'r') {
       release_mode = 1;
     }
+
   }
-	conf_parse(av[1]);
+	if (ac == optind) {
+		fprintf(stderr, _("%s: Kconfig file missing\n"), av[0]);
+		exit(1);
+	}
+	name = av[optind];
+	conf_parse(name);
 	conf_read(NULL);
 
 	mode = getenv("MENUCONFIG_MODE");
