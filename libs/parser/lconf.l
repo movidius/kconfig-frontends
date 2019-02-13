@@ -144,7 +144,7 @@ n	[A-Za-z0-9_]
 	}
 	\n	BEGIN(INITIAL); current_file->lineno++; return T_EOL;
 	---	/* ignore */
-	({n}|[-/.])+	{
+	({n}|[-/.@])+	{
 		const struct kconf_id *id = kconf_id_lookup(yytext, yyleng);
 		if (id && id->flags & TF_PARAM) {
 			zconflval.id = id;
