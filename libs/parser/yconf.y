@@ -878,7 +878,7 @@ void shaveapp_generate_placement(const char *shaveapp_id)
     menu_add_prompt(P_MENU, prompt, NULL);
     menu_add_menu();
   }
-  const int SHAVE_CORE_COUNT=12; // TODO lookup the specially defined symbol and get it's value here
+  const int SHAVE_CORE_COUNT=16; // TODO lookup the specially defined symbol and get it's value here
   int i;
   for (i=0; i<SHAVE_CORE_COUNT;i++) {
     const char *SYMBOL_FORMAT = "SHAVEAPP_%s_PLACE_CORE%d";
