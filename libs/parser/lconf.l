@@ -339,9 +339,18 @@ FILE *zconf_fopen(const char *name)
       }
     }
     if (!f) {
+      if (!release_mode) {
+        fprintf(stderr, "SRCTREE env lookup for %s\n", name);
+      }
       env = getenv(SRCTREE);
+      if (!release_mode) {
+        fprintf(stderr, "SRCTREE = %s\n", env);
+      }
       if (env) {
         sprintf(fullname, "%s/%s", env, name);
+        if (!release_mode) {
+          fprintf(stderr, "attempt open %s\n", fullname);
+        }
         f = fopen(fullname, "r");
       }
     }
