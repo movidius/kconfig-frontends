@@ -124,7 +124,7 @@ static char *shave_group_list = NULL;
 %}
 
 %%
-kcnf: input 
+kcnf: input
 {
   shaveapp_create_shaveapp_list();
   /* zconfdump(stdout);  */
